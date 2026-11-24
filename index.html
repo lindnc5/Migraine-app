@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Migraine">
+<meta name="theme-color" content="#f6f5f2">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<title>Migraine Log</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --muted: #8a8a8e;
+    --line: #e6e4df;
+    --migraine: #d93a3a;
+    --zolmi: #7b4fd6;
+    --advil: #1f7ae0;
+    --today: #1d1d1f;
+    --sel: #f1efe9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000; --card: #1c1c1e; --text: #f2f2f7; --muted: #8e8e93;
+      --line: #2c2c2e; --today: #f2f2f7; --sel: #2c2c2e;
+      --migraine: #ff5a52; --zolmi: #a07cf0; --advil: #3d95ff;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+  body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 12px 14px 32px; }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+
+  /* Month header */
+  .month-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 10px; }
+  .month-head h1 { font-size: 22px; margin: 0; font-weight: 700; }
+  .nav { display: flex; gap: 6px; align-items: center; }
+  .nav button { width: 38px; height: 38px; border-radius: 19px; background: var(--card); font-size: 20px;
+    display: grid; place-items: center; }
+  .nav .today-btn { width: auto; padding: 0 14px; font-size: 15px; font-weight: 600; }
+
+  /* Calendar */
+  .cal { background: var(--card); border-radius: 16px; padding: 8px 6px 6px; }
+  .dow, .grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .dow div { text-align: center; font-size: 12px; color: var(--muted); font-weight: 600; padding: 2px 0 6px; }
+  .day { aspect-ratio: 1 / 0.82; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding-top: 5px; border-radius: 10px; position: relative; }
+  .day.empty { visibility: hidden; }
+  .day .n { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 14px; font-size: 15px; }
+  .day.is-today .n { background: var(--today); color: var(--bg); font-weight: 700; }
+  .day.is-sel { background: var(--sel); }
+  .day.mig { background: color-mix(in srgb, var(--migraine) 14%, transparent); }
+  .day.mig.is-sel { background: color-mix(in srgb, var(--migraine) 26%, transparent); }
+  .dots { display: flex; gap: 3px; margin-top: 4px; height: 7px; }
+  .dot { width: 7px; height: 7px; border-radius: 4px; }
+  .dot.migraine { background: var(--migraine); }
+  .dot.zolmi { background: var(--zolmi); }
+  .dot.advil { background: var(--advil); }
+
+  .legend { display: flex; justify-content: center; gap: 14px; font-size: 13px; color: var(--muted); margin: 10px 0 0; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .summary { text-align: center; font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* Selected day */
+  .day-title { font-size: 18px; font-weight: 700; margin: 14px 2px 10px; }
+
+  /* Big buttons */
+  .btns { display: grid; gap: 10px; }
+  .big { width: 100%; padding: 16px 18px; border-radius: 16px; color: #fff; font-size: 20px; font-weight: 700;
+    display: flex; align-items: center; justify-content: space-between; transition: transform .08s, filter .08s; }
+  .big:active { transform: scale(0.98); filter: brightness(0.9); }
+  .big small { font-size: 13px; font-weight: 500; opacity: .85; }
+  .big.migraine { background: var(--migraine); }
+  .big.zolmi { background: var(--zolmi); }
+  .big.advil { background: var(--advil); }
+
+  /* Entries */
+  .entries { margin-top: 14px; background: var(--card); border-radius: 16px; overflow: hidden; }
+  .entry { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-top: 1px solid var(--line); }
+  .entry:first-child { border-top: 0; }
+  .entry .what { flex: 1; font-weight: 600; }
+  .entry .time { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .entry .del { color: var(--muted); font-size: 14px; padding: 4px 6px; }
+  .none { padding: 16px; color: var(--muted); text-align: center; }
+
+  .footer { text-align: center; margin-top: 26px; }
+  .footer button { color: var(--muted); font-size: 14px; text-decoration: underline; padding: 6px 10px; }
+
+  /* Toast */
+  .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translate(-50%, 140%);
+    background: #1d1d1f; color: #fff; padding: 12px 14px 12px 18px; border-radius: 14px; display: flex; gap: 14px;
+    align-items: center; box-shadow: 0 6px 24px rgba(0,0,0,.25); transition: transform .25s; max-width: 92vw; z-index: 10; }
+  .toast.show { transform: translate(-50%, 0); }
+  .toast button { color: #8ec5ff; font-weight: 700; }
+
+  /* Sheet (for past-day time + backup) */
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: flex-end; justify-content: center; z-index: 20; }
+  .sheet-bg.show { display: flex; }
+  .sheet { background: var(--card); width: 100%; max-width: 480px; border-radius: 18px 18px 0 0;
+    padding: 20px 18px calc(22px + env(safe-area-inset-bottom)); }
+  .sheet h2 { margin: 0 0 14px; font-size: 19px; }
+  .sheet p { color: var(--muted); margin: 0 0 14px; font-size: 14px; }
+  .sheet input[type=time] { font: inherit; font-size: 22px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line);
+    width: 100%; background: var(--bg); color: var(--text); margin-bottom: 14px; }
+  .sheet .row { display: flex; gap: 10px; }
+  .sheet .row button, .sheet .wide { flex: 1; padding: 14px; border-radius: 12px; font-weight: 600; background: var(--sel); }
+  .sheet .primary { background: var(--text); color: var(--bg); }
+  .sheet .wide { width: 100%; margin-bottom: 10px; display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="month-head">
+    <h1 id="monthLabel"></h1>
+    <div class="nav">
+      <button id="prev" aria-label="Previous month">‹</button>
+      <button id="todayBtn" class="today-btn">Today</button>
+      <button id="next" aria-label="Next month">›</button>
+    </div>
+  </div>
+
+  <div class="cal">
+    <div class="dow"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
+    <div class="grid" id="grid"></div>
+  </div>
+  <div class="legend">
+    <span><i class="dot migraine"></i>Migraine</span>
+    <span><i class="dot zolmi"></i>Zolmitriptan</span>
+    <span><i class="dot advil"></i>Advil</span>
+  </div>
+  <div class="summary" id="summary"></div>
+
+  <div class="day-title" id="dayTitle"></div>
+  <div class="btns">
+    <button class="big migraine" data-type="migraine">Migraine <small id="hint1"></small></button>
+    <button class="big zolmi" data-type="zolmi">Zolmitriptan <small id="hint2"></small></button>
+    <button class="big advil" data-type="advil">Advil <small id="hint3"></small></button>
+  </div>
+
+  <div class="entries" id="entries"></div>
+
+  <div class="footer"><button id="backupBtn">Backup / Restore</button></div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn">Undo</button></div>
+
+<!-- Pick a time when logging on a day other than today -->
+<div class="sheet-bg" id="timeSheet">
+  <div class="sheet">
+    <h2 id="timeTitle"></h2>
+    <p>What time was it?</p>
+    <input type="time" id="timeInput">
+    <div class="row">
+      <button id="timeCancel">Cancel</button>
+      <button id="timeSave" class="primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backup / restore -->
+<div class="sheet-bg" id="backupSheet">
+  <div class="sheet">
+    <h2>Backup / Restore</h2>
+    <p>Your log is saved only on this phone. Make a backup now and then so you don't lose it.</p>
+    <button class="wide" id="exportBtn">Save backup file</button>
+    <button class="wide" id="importBtn">Restore from backup file</button>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+    <button class="wide" id="backupClose">Close</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const KEY = 'migraine-log-v1';
+  const TYPES = {
+    migraine: { label: 'Migraine' },
+    zolmi:    { label: 'Zolmitriptan' },
+    advil:    { label: 'Advil' },
+  };
+  const ORDER = ['migraine', 'zolmi', 'advil'];
+
+  // ---------- storage ----------
+  // Each entry: { id, type, t }  where t = ISO timestamp (local time is derived on display)
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
+  }
+  function save() { localStorage.setItem(KEY, JSON.stringify(entries)); }
+  let entries = load();
+
+  // Ask iOS not to evict our data.
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  // ---------- date helpers ----------
+  const pad = n => String(n).padStart(2, '0');
+  const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const sameDay = (a, b) => dayKey(a) === dayKey(b);
+  const fmtTime = d => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  function byDay() {
+    const map = {};
+    for (const e of entries) {
+      const k = dayKey(new Date(e.t));
+      (map[k] ||= []).push(e);
+    }
+    return map;
+  }
+
+  // ---------- state ----------
+  let selected = new Date();
+  let viewYear = selected.getFullYear();
+  let viewMonth = selected.getMonth();
+
+  const $ = id => document.getElementById(id);
+
+  // ---------- render ----------
+  function render() {
+    const today = new Date();
+    const map = byDay();
+
+    const first = new Date(viewYear, viewMonth, 1);
+    $('monthLabel').textContent = first.toLocaleDateString([], { month: 'long', year: 'numeric' });
+
+    const grid = $('grid');
+    grid.innerHTML = '';
+    const lead = first.getDay();
+    const daysIn = new Date(viewYear, viewMonth + 1, 0).getDate();
+    for (let i = 0; i < lead; i++) {
+      const c = document.createElement('div'); c.className = 'day empty'; grid.appendChild(c);
+    }
+    const monthCounts = { migraine: 0, zolmi: 0, advil: 0 };
+    for (let d = 1; d <= daysIn; d++) {
+      const date = new Date(viewYear, viewMonth, d);
+      const list = map[dayKey(date)] || [];
+      const has = new Set(list.map(e => e.type));
+      has.forEach(t => monthCounts[t]++);
+
+      const cell = document.createElement('button');
+      cell.className = 'day';
+      if (sameDay(date, today)) cell.classList.add('is-today');
+      if (sameDay(date, selected)) cell.classList.add('is-sel');
+      if (has.has('migraine')) cell.classList.add('mig');
+      cell.innerHTML = `<span class="n">${d}</span><span class="dots">${
+        ORDER.filter(t => has.has(t)).map(t => `<i class="dot ${t}"></i>`).join('')}</span>`;
+      cell.onclick = () => { selected = date; render(); };
+      grid.appendChild(cell);
+    }
+
+    const plural = (n, w) => `${n} ${w} day${n === 1 ? '' : 's'}`;
+    $('summary').textContent =
+      `${plural(monthCounts.migraine, 'migraine')} · ${plural(monthCounts.zolmi, 'Zolmitriptan')} · ${plural(monthCounts.advil, 'Advil')}`;
+
+    // Selected day
+    const isToday = sameDay(selected, today);
+    $('dayTitle').textContent = isToday
+      ? 'Today, ' + selected.toLocaleDateString([], { month: 'long', day: 'numeric' })
+      : selected.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    const hint = isToday ? 'tap to log now' : 'tap to add';
+    $('hint1').textContent = $('hint2').textContent = $('hint3').textContent = hint;
+
+    const list = (map[dayKey(selected)] || []).slice().sort((a, b) => a.t.localeCompare(b.t));
+    const box = $('entries');
+    if (!list.length) {
+      box.innerHTML = `<div class="none">Nothing logged ${isToday ? 'today' : 'this day'}</div>`;
+    } else {
+      box.innerHTML = '';
+      for (const e of list) {
+        const row = document.createElement('div');
+        row.className = 'entry';
+        row.innerHTML = `<i class="dot ${e.type}"></i><span class="what">${TYPES[e.type].label}</span>
+          <span class="time">${fmtTime(new Date(e.t))}</span><button class="del" aria-label="Delete">✕</button>`;
+        row.querySelector('.del').onclick = () => {
+          if (confirm(`Delete ${TYPES[e.type].label} at ${fmtTime(new Date(e.t))}?`)) {
+            entries = entries.filter(x => x.id !== e.id); save(); render();
+          }
+        };
+        box.appendChild(row);
+      }
+    }
+  }
+
+  // ---------- logging ----------
+  let lastAdded = null, toastTimer = null;
+  function addEntry(type, when) {
+    const e = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), type, t: when.toISOString() };
+    entries.push(e); save();
+    lastAdded = e.id;
+    if (navigator.vibrate) navigator.vibrate(15);
+    showToast(`${TYPES[type].label} logged at ${fmtTime(when)}`);
+    render();
+  }
+  function showToast(msg, undo = true) {
+    $('toastMsg').textContent = msg;
+    $('undoBtn').style.display = undo ? '' : 'none';
+    $('toast').classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('toast').classList.remove('show'), 4000);
+  }
+  $('undoBtn').onclick = () => {
+    entries = entries.filter(x => x.id !== lastAdded); save();
+    $('toast').classList.remove('show'); render();
+  };
+
+  let pendingType = null;
+  document.querySelectorAll('.big').forEach(b => b.onclick = () => {
+    const type = b.dataset.type;
+    if (sameDay(selected, new Date())) { addEntry(type, new Date()); return; }
+    // Logging on another day: ask for the time.
+    pendingType = type;
+    $('timeTitle').textContent = `${TYPES[type].label} on ${selected.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+    const now = new Date();
+    $('timeInput').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    $('timeSheet').classList.add('show');
+  });
+  $('timeCancel').onclick = () => $('timeSheet').classList.remove('show');
+  $('timeSave').onclick = () => {
+    const [h, m] = ($('timeInput').value || '12:00').split(':').map(Number);
+    const when = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), h, m);
+    $('timeSheet').classList.remove('show');
+    addEntry(pendingType, when);
+  };
+
+  // ---------- navigation ----------
+  function goMonth(delta) {
+    const d = new Date(viewYear, viewMonth + delta, 1);
+    viewYear = d.getFullYear(); viewMonth = d.getMonth(); render();
+  }
+  function goToday() {
+    selected = new Date(); viewYear = selected.getFullYear(); viewMonth = selected.getMonth(); render();
+  }
+  $('prev').onclick = () => goMonth(-1);
+  $('next').onclick = () => goMonth(1);
+  $('todayBtn').onclick = goToday;
+
+  // Swipe left/right on the calendar to change months.
+  let sx = null;
+  $('grid').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+  $('grid').addEventListener('touchend', e => {
+    if (sx === null) return;
+    const dx = e.changedTouches[0].clientX - sx; sx = null;
+    if (Math.abs(dx) > 60) goMonth(dx < 0 ? 1 : -1);
+  });
+
+  // Always come back to today when the app is reopened.
+  let hiddenAt = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) hiddenAt = Date.now();
+    else if (Date.now() - hiddenAt > 10 * 60 * 1000) goToday();
+    else render();
+  });
+
+  // ---------- backup ----------
+  $('backupBtn').onclick = () => $('backupSheet').classList.add('show');
+  $('backupClose').onclick = () => $('backupSheet').classList.remove('show');
+  $('exportBtn').onclick = async () => {
+    const name = `migraine-backup-${dayKey(new Date())}.json`;
+    const blob = new Blob([JSON.stringify({ app: 'migraine-log', version: 1, entries }, null, 2)], { type: 'application/json' });
+    const file = new File([blob], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'Migraine backup' }); return; } catch (err) { if (err.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+  $('importBtn').onclick = () => $('importFile').click();
+  $('importFile').onchange = async ev => {
+    const f = ev.target.files[0]; ev.target.value = '';
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      const incoming = Array.isArray(data) ? data : data.entries;
+      if (!Array.isArray(incoming)) throw new Error('bad file');
+      const valid = incoming.filter(e => e && TYPES[e.type] && !isNaN(Date.parse(e.t)) && e.id);
+      const ids = new Set(entries.map(e => e.id));
+      const added = valid.filter(e => !ids.has(e.id));
+      entries = entries.concat(added); save(); render();
+      $('backupSheet').classList.remove('show');
+      showToast(`Restored ${added.length} entr${added.length === 1 ? 'y' : 'ies'}`, false);
+    } catch { alert("That file doesn't look like a migraine backup."); }
+  };
+
+  render();
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
