@@ -193,6 +193,29 @@
   .share { width: 100%; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--text); color: var(--bg); font-weight: 700; }
   .muted { color: var(--muted); font-size: 14px; }
 
+  /* Tags */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+  .chips:empty { display: none; }
+  .chip { padding: 7px 12px; border-radius: 17px; background: var(--sel); font-size: 15px; font-weight: 600; color: var(--text); }
+  .chip.on { background: var(--text); color: var(--bg); }
+  .chip.new { background: none; border: 1.5px dashed var(--muted); }
+  .chip .x { margin-left: 6px; opacity: .6; font-weight: 400; }
+  .chip small { color: var(--muted); font-weight: 500; margin-left: 4px; }
+  .chip.on small { color: inherit; opacity: .7; }
+  .sugg-label { font-size: 13px; color: var(--muted); margin: 0 0 7px; }
+  .entry .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .tagmini { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+    background: color-mix(in srgb, var(--migraine) 22%, transparent); }
+  .hrow.wide { grid-template-columns: minmax(0, 120px) 1fr 28px; }
+  .hrow.wide span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .addrow { display: flex; gap: 8px; margin-top: 10px; }
+  .addrow input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 11px 12px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  .addrow button { padding: 0 16px; border-radius: 12px; background: var(--text); color: var(--bg); font-weight: 700; }
+  .tagbox { background: var(--card); border-radius: 14px; padding: 14px; }
+  .sheet { max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .toast .acts { display: flex; gap: 14px; }
+
   /* Buttons page */
   .intro { color: var(--muted); font-size: 15px; margin: 0 2px 12px; }
   .blist { background: var(--card); border-radius: 14px; overflow: hidden; }
@@ -273,6 +296,11 @@
   </div>
 
   <div class="card">
+    <h3>Top tags</h3>
+    <div id="topTags"></div>
+  </div>
+
+  <div class="card">
     <h3>Notes</h3>
     <div id="notesList"></div>
   </div>
@@ -290,6 +318,16 @@
     <div class="sec">Removed</div>
     <p class="intro">Past entries for these stay in your history. Tap Restore to bring a button back.</p>
     <div class="blist" id="rlist"></div>
+  </div>
+
+  <div class="sec">Migraine tags</div>
+  <p class="intro">Tags you can add to a migraine, like what might have triggered it. Most-used first. Tap a tag to remove it from this list (migraines you already tagged keep it).</p>
+  <div class="tagbox">
+    <div class="chips" id="tagManage"></div>
+    <div class="addrow">
+      <input type="text" id="newTag" maxlength="24" placeholder="New tag" autocomplete="off" autocapitalize="sentences" enterkeyhint="done">
+      <button id="newTagBtn">Add</button>
+    </div>
   </div>
 
   <div class="sec">Appearance</div>
@@ -316,7 +354,7 @@
   </button>
 </nav>
 
-<div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn">Undo</button></div>
+<div class="toast" id="toast"><span id="toastMsg"></span><span class="acts"><button id="tagsBtn">Add tags</button><button id="undoBtn">Undo</button></span></div>
 
 <!-- Pick a time when logging on a day other than today -->
 <div class="sheet-bg" id="timeSheet">
@@ -337,6 +375,13 @@
     <h2 id="editTitle"></h2>
     <label for="editTime">Time</label>
     <input type="time" id="editTime">
+    <div id="tagSection">
+      <label for="tagInput">Tags</label>
+      <div class="chips" id="tagChips"></div>
+      <input type="text" id="tagInput" maxlength="24" placeholder="Type a tag, e.g. Low sleep" autocomplete="off" autocapitalize="sentences" enterkeyhint="done">
+      <div class="sugg-label" id="suggLabel"></div>
+      <div class="chips" id="tagSuggest"></div>
+    </div>
     <label for="editNote">Note</label>
     <textarea id="editNote" placeholder="e.g. woke up with it, pain 7/10, took with food…"></textarea>
     <div class="row">
@@ -417,6 +462,37 @@
   }
   function save() { localStorage.setItem(KEY, JSON.stringify(entries)); }
   let entries = load();
+  // ---------- tags ----------
+  const TKEY = 'migraine-tags-v1';
+  const DEFAULT_TAGS = ['Low sleep', 'Pressure', 'Stress', 'Skipped meal', 'Dehydration', 'Period',
+    'Bright light', 'Screen time', 'Weather change', 'Alcohol', 'Caffeine', 'Strong smell'];
+  let tagList;
+  try { tagList = JSON.parse(localStorage.getItem(TKEY)); } catch {}
+  if (!Array.isArray(tagList)) tagList = DEFAULT_TAGS.slice();
+  const saveTags = () => localStorage.setItem(TKEY, JSON.stringify(tagList));
+  const cleanTag = t => String(t).trim().replace(/\s+/g, ' ').slice(0, 24);
+  const sameTag = (a, b) => a.toLowerCase() === b.toLowerCase();
+  // Return the existing spelling of a tag if we already have it, otherwise add it to the list.
+  function canonTag(t) {
+    t = cleanTag(t);
+    if (!t) return '';
+    const found = tagList.find(x => sameTag(x, t));
+    if (found) return found;
+    t = t[0].toUpperCase() + t.slice(1);
+    tagList.push(t); saveTags();
+    return t;
+  }
+  function tagCounts() {
+    const c = {};
+    for (const e of entries) for (const t of (e.tags || [])) c[t.toLowerCase()] = (c[t.toLowerCase()] || 0) + 1;
+    return c;
+  }
+  // Most-used first, then in list order.
+  function rankedTags() {
+    const c = tagCounts();
+    return tagList.map((t, i) => [t, c[t.toLowerCase()] || 0, i]).sort((a, b) => b[1] - a[1] || a[2] - b[2]).map(x => x[0]);
+  }
+
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
@@ -509,6 +585,7 @@
         const row = document.createElement('button');
         row.className = 'entry';
         row.innerHTML = `${dot(e.type)}<span class="what">${escapeHtml(label(e.type))}${
+            e.tags && e.tags.length ? `<span class="tags">${e.tags.map(t => `<span class="tagmini">${escapeHtml(t)}</span>`).join('')}</span>` : ''}${
             e.note ? `<span class="note">${escapeHtml(e.note)}</span>` : ''}</span>
           <span class="time">${fmtTime(new Date(e.t))}</span><span class="chev">›</span>`;
         row.onclick = () => openEdit(e.id);
@@ -524,16 +601,23 @@
     entries.push(e); save();
     lastAdded = e.id;
     if (navigator.vibrate) navigator.vibrate(15);
-    showToast(`${label(type)} logged at ${fmtTime(when)}`);
+    showToast(`${label(type)} logged at ${fmtTime(when)}`, true, type === 'migraine' ? e.id : null);
     render();
   }
-  function showToast(msg, undo = true) {
+  let toastTagId = null;
+  function showToast(msg, undo = true, tagId = null) {
     $('toastMsg').textContent = msg;
     $('undoBtn').style.display = undo ? '' : 'none';
+    toastTagId = tagId;
+    $('tagsBtn').style.display = tagId ? '' : 'none';
     $('toast').classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => $('toast').classList.remove('show'), 4000);
   }
+  $('tagsBtn').onclick = () => {
+    $('toast').classList.remove('show');
+    if (toastTagId) openEdit(toastTagId, true);
+  };
   $('undoBtn').onclick = () => {
     entries = entries.filter(x => x.id !== lastAdded); save();
     $('toast').classList.remove('show'); render();
@@ -558,16 +642,72 @@
   };
 
   // ---------- editing ----------
-  let editingId = null;
-  function openEdit(id) {
+  let editingId = null, editTags = [];
+  function renderTagEditor() {
+    $('tagChips').innerHTML = editTags.map((t, i) =>
+      `<button class="chip on" data-rm="${i}">${escapeHtml(t)}<span class="x">✕</span></button>`).join('');
+    $('tagChips').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { editTags.splice(+b.dataset.rm, 1); renderTagEditor(); });
+
+    const q = cleanTag($('tagInput').value).toLowerCase();
+    const avail = rankedTags().filter(t => !editTags.some(x => sameTag(x, t)));
+    let items, title;
+    if (!q) {
+      items = avail.slice(0, 12).map(t => ({ t }));
+      title = items.length ? 'Common tags — tap to add' : '';
+    } else {
+      const starts = avail.filter(t => t.toLowerCase().startsWith(q));
+      const has = avail.filter(t => !t.toLowerCase().startsWith(q) && t.toLowerCase().includes(q));
+      items = [...starts, ...has].slice(0, 12).map(t => ({ t }));
+      const exists = tagList.some(t => sameTag(t, q)) || editTags.some(t => sameTag(t, q));
+      if (!exists) items.push({ t: cleanTag($('tagInput').value), isNew: true });
+      title = 'Suggestions';
+    }
+    $('suggLabel').textContent = title;
+    $('tagSuggest').innerHTML = items.map((x, i) =>
+      `<button class="chip${x.isNew ? ' new' : ''}" data-add="${i}">${x.isNew ? `＋ Add “${escapeHtml(x.t)}”` : escapeHtml(x.t)}</button>`).join('');
+    $('tagSuggest').querySelectorAll('[data-add]').forEach(b => {
+      // Keep the keyboard open while tapping a suggestion.
+      b.onpointerdown = ev => ev.preventDefault();
+      b.onclick = () => addEditTag(items[+b.dataset.add].t);
+    });
+  }
+  function addEditTag(t) {
+    t = canonTag(t);
+    if (t && !editTags.some(x => sameTag(x, t))) editTags.push(t);
+    $('tagInput').value = '';
+    renderTagEditor();
+  }
+  $('tagInput').addEventListener('input', () => {
+    // Typing a comma finishes a tag.
+    if ($('tagInput').value.includes(',')) { $('tagInput').value.split(',').forEach(addEditTag); return; }
+    renderTagEditor();
+  });
+  $('tagInput').addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter') return;
+    ev.preventDefault();
+    const q = cleanTag($('tagInput').value);
+    if (!q) { $('tagInput').blur(); return; }
+    // Prefer an existing tag that starts with what was typed.
+    const match = rankedTags().find(t => sameTag(t, q)) || rankedTags().find(t => t.toLowerCase().startsWith(q.toLowerCase()) && !editTags.some(x => sameTag(x, t)));
+    addEditTag(match || q);
+  });
+
+  function openEdit(id, focusTags = false) {
     const e = entries.find(x => x.id === id);
     if (!e) return;
     editingId = id;
+    const isMig = e.type === 'migraine';
+    $('tagSection').hidden = !isMig;
+    editTags = (e.tags || []).slice();
+    $('tagInput').value = '';
+    if (isMig) renderTagEditor();
     const d = new Date(e.t);
     $('editTitle').textContent = `${label(e.type)} · ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
     $('editTime').value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
     $('editNote').value = e.note || '';
     $('editSheet').classList.add('show');
+    $('editSheet').querySelector('.sheet').scrollTop = 0;
+    if (focusTags && isMig) setTimeout(() => $('tagInput').focus(), 50);
   }
   function closeEdit() { $('editSheet').classList.remove('show'); editingId = null; }
   $('editCancel').onclick = closeEdit;
@@ -582,6 +722,10 @@
       }
       const note = $('editNote').value.trim();
       if (note) e.note = note; else delete e.note;
+      if (e.type === 'migraine') {
+        if (cleanTag($('tagInput').value)) addEditTag($('tagInput').value); // finish a half-typed tag
+        if (editTags.length) e.tags = editTags.slice(); else delete e.tags;
+      }
       save();
     }
     closeEdit(); render();
@@ -719,6 +863,20 @@
         + `<div class="muted">Morning 5am–noon · Afternoon noon–5pm · Evening 5–9pm · Night 9pm–5am</div>`
       : '<div class="muted">No migraines logged in this period.</div>';
 
+    // Top tags: migraine days carrying each tag
+    const tagDays = {};
+    for (const e of migEntries) for (const t of (e.tags || [])) {
+      const k = t.toLowerCase();
+      (tagDays[k] ||= { t, days: new Set() }).days.add(dayKey(new Date(e.t)));
+    }
+    const topTags = Object.values(tagDays).map(x => [x.t, x.days.size]).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const ttmax = Math.max(1, ...topTags.map(t => t[1]));
+    $('topTags').innerHTML = topTags.length
+      ? topTags.map(([t, n]) => `<div class="hrow wide"><span>${escapeHtml(t)}</span>
+          <div class="track"><div class="fill" style="width:${(n / ttmax) * 100}%"></div></div><span>${n}</span></div>`).join('')
+        + `<div class="muted">Number of migraine days with each tag (out of ${migDays}).</div>`
+      : '<div class="muted">No tagged migraines in this period. Tap a migraine on the Log tab to add tags.</div>';
+
     // Notes
     const withNotes = st.list.filter(e => e.note).sort((a, b) => b.t.localeCompare(a.t));
     $('notesList').innerHTML = withNotes.length
@@ -733,12 +891,18 @@
     const st = stats(start, end);
     const lines = [`Migraine summary: ${periodLabel(start, endMonth)}`, '',
       `Migraine days: ${st.days.migraine.size}${range > 1 ? ` (avg ${(st.days.migraine.size / range).toFixed(1)}/month)` : ''}`,
-      ...st.meds.map(b => `${b.label}: ${st.nDoses(b.id)} doses on ${st.nDays(b.id)} days`), '', 'Log:'];
+      ...st.meds.map(b => `${b.label}: ${st.nDoses(b.id)} doses on ${st.nDays(b.id)} days`)];
+    const tagDays = {};
+    for (const e of st.list) if (e.type === 'migraine') for (const t of (e.tags || []))
+      (tagDays[t.toLowerCase()] ||= { t, days: new Set() }).days.add(dayKey(new Date(e.t)));
+    const top = Object.values(tagDays).sort((a, b) => b.days.size - a.days.size);
+    if (top.length) lines.push(`Tags: ${top.map(x => `${x.t} (${x.days.size})`).join(', ')}`);
+    lines.push('', 'Log:');
     const byDate = {};
     for (const e of st.list.slice().sort((a, b) => a.t.localeCompare(b.t))) {
       const d = new Date(e.t);
       const k = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-      (byDate[k] ||= []).push(`${label(e.type)} ${fmtTime(d)}${e.note ? ` (${e.note})` : ''}`);
+      (byDate[k] ||= []).push(`${label(e.type)} ${fmtTime(d)}${e.tags && e.tags.length ? ` [${e.tags.join(', ')}]` : ''}${e.note ? ` (${e.note})` : ''}`);
     }
     const keys = Object.keys(byDate);
     if (!keys.length) lines.push('Nothing logged.');
@@ -796,6 +960,16 @@
         <button class="mv" data-up="${escapeHtml(b.id)}" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>▲</button>
         <button class="mv" data-down="${escapeHtml(b.id)}" aria-label="Move down" ${i === meds.length - 1 ? 'disabled' : ''}>▼</button></div>`;
     }).join('');
+    const counts = tagCounts();
+    $('tagManage').innerHTML = rankedTags().map(t => {
+      const n = counts[t.toLowerCase()] || 0;
+      return `<button class="chip" data-tag="${escapeHtml(t)}">${escapeHtml(t)}${n ? `<small>${n}</small>` : ''}<span class="x">✕</span></button>`;
+    }).join('') || '<span class="muted">No tags yet.</span>';
+    $('tagManage').querySelectorAll('[data-tag]').forEach(x => x.onclick = () => {
+      const t = x.dataset.tag;
+      if (!confirm(`Remove "${t}" from your tag list?\n\nMigraines already tagged "${t}" keep it.`)) return;
+      tagList = tagList.filter(y => !sameTag(y, t)); saveTags(); renderButtonsPage();
+    });
     const removed = buttons.filter(b => b.removed);
     $('removedWrap').hidden = !removed.length;
     $('rlist').innerHTML = removed.map(b => `<div class="brow">${dot(b.id)}<span class="name">${escapeHtml(b.label)}</span>
@@ -820,6 +994,16 @@
       saveButtons(); renderButtonsPage(); showToast(`${b.label} is back on your Log screen`, false);
     });
   }
+
+  function addListTag() {
+    const t = cleanTag($('newTag').value);
+    if (!t) { $('newTag').focus(); return; }
+    if (tagList.some(x => sameTag(x, t))) { showToast(`"${t}" is already a tag`, false); }
+    else { tagList.push(t); saveTags(); showToast(`Added "${t}"`, false); }
+    $('newTag').value = ''; renderButtonsPage();
+  }
+  $('newTagBtn').onclick = addListTag;
+  $('newTag').addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); addListTag(); } });
 
   let editingBtn = null, pickColor = null, pickKind = '';
   function paintSheet() {
@@ -916,7 +1100,7 @@
   $('backupClose').onclick = () => $('backupSheet').classList.remove('show');
   $('exportBtn').onclick = async () => {
     const name = `migraine-backup-${dayKey(new Date())}.json`;
-    const blob = new Blob([JSON.stringify({ app: 'migraine-log', version: 2, buttons, entries }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ app: 'migraine-log', version: 3, buttons, tags: tagList, entries }, null, 2)], { type: 'application/json' });
     const file = new File([blob], name, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file], title: 'Migraine backup' }); return; } catch (err) { if (err.name === 'AbortError') return; }
@@ -941,8 +1125,11 @@
             ...(KINDS[b.kind] ? { kind: b.kind } : {}), ...(b.removed ? { removed: true } : {}) });
         }
       }
+      if (Array.isArray(data.tags)) for (const t of data.tags) if (typeof t === 'string') canonTag(t);
       const valid = incoming.filter(e => e && typeof e.type === 'string' && !isNaN(Date.parse(e.t)) && e.id
-        && (e.note === undefined || typeof e.note === 'string'));
+        && (e.note === undefined || typeof e.note === 'string')
+        && (e.tags === undefined || (Array.isArray(e.tags) && e.tags.every(t => typeof t === 'string'))));
+      for (const e of valid) if (e.tags) { e.tags = e.tags.map(canonTag).filter(Boolean); if (!e.tags.length) delete e.tags; }
       // Older backups only have entries: make sure every type has a button (kept as removed).
       for (const e of valid) if (!buttons.some(b => b.id === e.type))
         buttons.push({ id: e.type, label: e.type, color: 'gray', removed: true });
