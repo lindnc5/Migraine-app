@@ -88,7 +88,11 @@
   .entry:first-child { border-top: 0; }
   .entry .what { flex: 1; font-weight: 600; }
   .entry .time { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .entry .del { color: var(--muted); font-size: 14px; padding: 4px 6px; }
+  .entry { width: 100%; text-align: left; }
+  .entry:active { background: var(--sel); }
+  .entry .what { display: flex; flex-direction: column; min-width: 0; }
+  .entry .note { font-weight: 400; font-size: 14px; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 2px; }
+  .entry .chev { color: var(--muted); font-size: 20px; line-height: 1; }
   .none { padding: 16px; color: var(--muted); text-align: center; }
 
   .footer { text-align: center; margin-top: 26px; }
@@ -110,9 +114,13 @@
   .sheet p { color: var(--muted); margin: 0 0 14px; font-size: 14px; }
   .sheet input[type=time] { font: inherit; font-size: 22px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line);
     width: 100%; background: var(--bg); color: var(--text); margin-bottom: 14px; }
+  .sheet label { display: block; font-size: 14px; color: var(--muted); margin: 0 0 6px; }
+  .sheet textarea { font: inherit; font-size: 17px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line);
+    width: 100%; min-height: 90px; resize: vertical; background: var(--bg); color: var(--text); margin-bottom: 14px; }
+  .sheet .danger { color: var(--migraine); background: none; width: 100%; padding: 14px; font-weight: 600; margin-top: 6px; }
   .sheet .row { display: flex; gap: 10px; }
   .sheet .row button, .sheet .wide { flex: 1; padding: 14px; border-radius: 12px; font-weight: 600; background: var(--sel); }
-  .sheet .primary { background: var(--text); color: var(--bg); }
+  .sheet .row .primary { background: var(--text); color: var(--bg); }
   .sheet .wide { width: 100%; margin-bottom: 10px; display: block; }
 </style>
 </head>
@@ -162,6 +170,22 @@
       <button id="timeCancel">Cancel</button>
       <button id="timeSave" class="primary">Save</button>
     </div>
+  </div>
+</div>
+
+<!-- Edit a logged entry -->
+<div class="sheet-bg" id="editSheet">
+  <div class="sheet">
+    <h2 id="editTitle"></h2>
+    <label for="editTime">Time</label>
+    <input type="time" id="editTime">
+    <label for="editNote">Note</label>
+    <textarea id="editNote" placeholder="e.g. woke up with it, pain 7/10, took with food…"></textarea>
+    <div class="row">
+      <button id="editCancel">Cancel</button>
+      <button id="editSave" class="primary">Save</button>
+    </div>
+    <button id="editDelete" class="danger">Delete this entry</button>
   </div>
 </div>
 
@@ -272,15 +296,12 @@
     } else {
       box.innerHTML = '';
       for (const e of list) {
-        const row = document.createElement('div');
+        const row = document.createElement('button');
         row.className = 'entry';
-        row.innerHTML = `<i class="dot ${e.type}"></i><span class="what">${TYPES[e.type].label}</span>
-          <span class="time">${fmtTime(new Date(e.t))}</span><button class="del" aria-label="Delete">✕</button>`;
-        row.querySelector('.del').onclick = () => {
-          if (confirm(`Delete ${TYPES[e.type].label} at ${fmtTime(new Date(e.t))}?`)) {
-            entries = entries.filter(x => x.id !== e.id); save(); render();
-          }
-        };
+        row.innerHTML = `<i class="dot ${e.type}"></i><span class="what">${TYPES[e.type].label}${
+            e.note ? `<span class="note">${escapeHtml(e.note)}</span>` : ''}</span>
+          <span class="time">${fmtTime(new Date(e.t))}</span><span class="chev">›</span>`;
+        row.onclick = () => openEdit(e.id);
         box.appendChild(row);
       }
     }
@@ -326,6 +347,50 @@
     $('timeSheet').classList.remove('show');
     addEntry(pendingType, when);
   };
+
+  // ---------- editing ----------
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  let editingId = null;
+  function openEdit(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    editingId = id;
+    const d = new Date(e.t);
+    $('editTitle').textContent = `${TYPES[e.type].label} · ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+    $('editTime').value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    $('editNote').value = e.note || '';
+    $('editSheet').classList.add('show');
+  }
+  function closeEdit() { $('editSheet').classList.remove('show'); editingId = null; }
+  $('editCancel').onclick = closeEdit;
+  $('editSave').onclick = () => {
+    const e = entries.find(x => x.id === editingId);
+    if (e) {
+      const d = new Date(e.t);
+      if ($('editTime').value) {
+        const [h, m] = $('editTime').value.split(':').map(Number);
+        d.setHours(h, m, 0, 0);
+        e.t = d.toISOString();
+      }
+      const note = $('editNote').value.trim();
+      if (note) e.note = note; else delete e.note;
+      save();
+    }
+    closeEdit(); render();
+  };
+  $('editDelete').onclick = () => {
+    const e = entries.find(x => x.id === editingId);
+    if (e && confirm(`Delete ${TYPES[e.type].label} at ${fmtTime(new Date(e.t))}?`)) {
+      entries = entries.filter(x => x.id !== editingId); save(); closeEdit(); render();
+    }
+  };
+
+  // Tap the dimmed background to close any sheet.
+  document.querySelectorAll('.sheet-bg').forEach(bg => bg.addEventListener('click', ev => {
+    if (ev.target === bg) { bg.classList.remove('show'); if (bg.id === 'editSheet') editingId = null; }
+  }));
 
   // ---------- navigation ----------
   function goMonth(delta) {
@@ -378,7 +443,8 @@
       const data = JSON.parse(await f.text());
       const incoming = Array.isArray(data) ? data : data.entries;
       if (!Array.isArray(incoming)) throw new Error('bad file');
-      const valid = incoming.filter(e => e && TYPES[e.type] && !isNaN(Date.parse(e.t)) && e.id);
+      const valid = incoming.filter(e => e && TYPES[e.type] && !isNaN(Date.parse(e.t)) && e.id
+        && (e.note === undefined || typeof e.note === 'string'));
       const ids = new Set(entries.map(e => e.id));
       const added = valid.filter(e => !ids.has(e.id));
       entries = entries.concat(added); save(); render();
