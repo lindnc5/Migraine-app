@@ -20,7 +20,7 @@
     --muted: #8a8a8e;
     --line: #e6e4df;
     --migraine: #d93a3a;
-    --zolmi: #7b4fd6;
+    --zolmi: #c98500;
     --advil: #1f7ae0;
     --today: #1d1d1f;
     --sel: #f1efe9;
@@ -29,14 +29,14 @@
     :root {
       --bg: #000; --card: #1c1c1e; --text: #f2f2f7; --muted: #8e8e93;
       --line: #2c2c2e; --today: #f2f2f7; --sel: #2c2c2e;
-      --migraine: #ff5a52; --zolmi: #a07cf0; --advil: #3d95ff;
+      --migraine: #d03a34; --zolmi: #bd8a12; --advil: #3d8bf0;
     }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
   body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
-  .wrap { max-width: 480px; margin: 0 auto; padding: 12px 14px 32px; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 12px 14px calc(96px + env(safe-area-inset-bottom)); }
   button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
 
   /* Month header */
@@ -49,10 +49,10 @@
 
   /* Calendar */
   .cal { background: var(--card); border-radius: 16px; padding: 8px 6px 6px; }
-  .dow, .grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .dow, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
   .dow div { text-align: center; font-size: 12px; color: var(--muted); font-weight: 600; padding: 2px 0 6px; }
-  .day { aspect-ratio: 1 / 0.82; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-    padding-top: 5px; border-radius: 10px; position: relative; }
+  .day { aspect-ratio: 1 / 0.74; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding: 5px 0 0; min-width: 0; border-radius: 10px; position: relative; }
   .day.empty { visibility: hidden; }
   .day .n { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 14px; font-size: 15px; }
   .day.is-today .n { background: var(--today); color: var(--bg); font-weight: 700; }
@@ -99,10 +99,10 @@
   .footer button { color: var(--muted); font-size: 14px; text-decoration: underline; padding: 6px 10px; }
 
   /* Toast */
-  .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translate(-50%, 140%);
+  .toast { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom)); transform: translate(-50%, 0); opacity: 0; pointer-events: none;
     background: #1d1d1f; color: #fff; padding: 12px 14px 12px 18px; border-radius: 14px; display: flex; gap: 14px;
-    align-items: center; box-shadow: 0 6px 24px rgba(0,0,0,.25); transition: transform .25s; max-width: 92vw; z-index: 10; }
-  .toast.show { transform: translate(-50%, 0); }
+    align-items: center; box-shadow: 0 6px 24px rgba(0,0,0,.25); transition: opacity .2s; max-width: 92vw; z-index: 10; }
+  .toast.show { opacity: 1; pointer-events: auto; }
   .toast button { color: #8ec5ff; font-weight: 700; }
 
   /* Sheet (for past-day time + backup) */
@@ -122,10 +122,59 @@
   .sheet .row button, .sheet .wide { flex: 1; padding: 14px; border-radius: 12px; font-weight: 600; background: var(--sel); }
   .sheet .row .primary { background: var(--text); color: var(--bg); }
   .sheet .wide { width: 100%; margin-bottom: 10px; display: block; }
+
+  /* Tab bar */
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center;
+    background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--line); padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); }
+  .tabbar button { flex: 0 1 200px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-size: 12px; font-weight: 600; color: var(--muted); padding: 4px 0; }
+  .tabbar svg { width: 26px; height: 26px; }
+  .tabbar button.on { color: var(--text); }
+  [hidden] { display: none !important; }
+
+  /* Summary */
+  .seg { display: flex; background: var(--card); border-radius: 12px; padding: 3px; margin: 4px 0 12px; }
+  .seg button { flex: 1; padding: 8px 0; border-radius: 9px; font-size: 14px; font-weight: 600; color: var(--muted); }
+  .seg button.on { background: var(--text); color: var(--bg); }
+  .period { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .period h2 { margin: 0; font-size: 18px; }
+  .period button { width: 36px; height: 36px; border-radius: 18px; background: var(--card); font-size: 20px; }
+  .period button:disabled { opacity: .3; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tile { background: var(--card); border-radius: 14px; padding: 12px 10px; }
+  .tile .k { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .tile .v { font-size: 30px; font-weight: 700; line-height: 1.1; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .tile .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .card { background: var(--card); border-radius: 14px; padding: 14px; margin-top: 10px; }
+  .card h3 { margin: 0 0 10px; font-size: 15px; }
+  .facts { display: grid; gap: 8px; }
+  .fact { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; }
+  .fact span:last-child { font-weight: 600; text-align: right; }
+  .warn { margin-top: 10px; font-size: 14px; padding: 10px 12px; border-radius: 10px; background: var(--sel); }
+  .bars { display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid var(--line); }
+  .bars .col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+  .bars .b { width: 70%; max-width: 22px; background: var(--migraine); border-radius: 4px 4px 0 0; min-height: 0; }
+  .bars .col.dim .b { opacity: .35; }
+  .bars .col.picked .b { opacity: 1; }
+  .bars .lab { font-size: 11px; font-weight: 600; margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+  .xlabels { display: flex; gap: 2px; }
+  .xlabels div { flex: 1; text-align: center; font-size: 11px; color: var(--muted); padding-top: 4px; }
+  .chart-cap { font-size: 13px; color: var(--muted); margin: -4px 0 10px; min-height: 18px; }
+  .hrow { display: grid; grid-template-columns: 86px 1fr 28px; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 8px; }
+  .hrow .track { height: 10px; background: var(--sel); border-radius: 5px; overflow: hidden; }
+  .hrow .fill { height: 100%; background: var(--migraine); border-radius: 5px; }
+  .hrow span:last-child { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .note-item { padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .note-item:first-of-type { border-top: 0; padding-top: 0; }
+  .note-item .meta { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; margin-bottom: 2px; }
+  .note-item .txt { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .share { width: 100%; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--text); color: var(--bg); font-weight: 700; }
+  .muted { color: var(--muted); font-size: 14px; }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" id="logView">
   <div class="month-head">
     <h1 id="monthLabel"></h1>
     <div class="nav">
@@ -157,6 +206,60 @@
 
   <div class="footer"><button id="backupBtn">Backup / Restore</button></div>
 </div>
+
+<div class="wrap" id="summaryView" hidden>
+  <div class="month-head"><h1>Summary</h1></div>
+  <div class="seg" id="rangeSeg">
+    <button data-r="1" class="on">Month</button><button data-r="3">3 Months</button><button data-r="12">Year</button>
+  </div>
+  <div class="period">
+    <button id="sPrev" aria-label="Earlier">‹</button>
+    <h2 id="sLabel"></h2>
+    <button id="sNext" aria-label="Later">›</button>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="k"><i class="dot migraine"></i>Migraine</div><div class="v" id="tMig"></div><div class="s" id="tMigS"></div></div>
+    <div class="tile"><div class="k"><i class="dot zolmi"></i>Zolmitriptan</div><div class="v" id="tZol"></div><div class="s" id="tZolS"></div></div>
+    <div class="tile"><div class="k"><i class="dot advil"></i>Advil</div><div class="v" id="tAdv"></div><div class="s" id="tAdvS"></div></div>
+  </div>
+  <div id="warnBox"></div>
+
+  <div class="card">
+    <h3>At a glance</h3>
+    <div class="facts" id="facts"></div>
+  </div>
+
+  <div class="card">
+    <h3>Migraine days per month</h3>
+    <div class="chart-cap" id="barCap">Tap a bar for details</div>
+    <div class="bars" id="bars"></div>
+    <div class="xlabels" id="xlabels"></div>
+  </div>
+
+  <div class="card">
+    <h3>When migraines start</h3>
+    <div id="tod"></div>
+  </div>
+
+  <div class="card">
+    <h3>Notes</h3>
+    <div id="notesList"></div>
+  </div>
+
+  <button class="share" id="shareBtn">Share summary (for your doctor)</button>
+</div>
+
+<nav class="tabbar">
+  <button id="tabLog" class="on">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+    Log
+  </button>
+  <button id="tabSummary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V13M12 20V6M19 20v-9"/></svg>
+    Summary
+  </button>
+</nav>
 
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn">Undo</button></div>
 
@@ -246,6 +349,7 @@
 
   // ---------- render ----------
   function render() {
+    if (!$('summaryView').hidden) renderSummary();
     const today = new Date();
     const map = byDay();
 
@@ -392,6 +496,175 @@
     if (ev.target === bg) { bg.classList.remove('show'); if (bg.id === 'editSheet') editingId = null; }
   }));
 
+  // ---------- summary ----------
+  let range = 1;            // months per window: 1, 3 or 12
+  let endOffset = 0;        // 0 = window ends with the current month; -1 = one window earlier, etc.
+  let pickedBar = null;
+  const monthName = (d, opts) => d.toLocaleDateString([], opts);
+
+  function windowBounds() {
+    const now = new Date();
+    const endMonth = new Date(now.getFullYear(), now.getMonth() + endOffset * range, 1);
+    const start = new Date(endMonth.getFullYear(), endMonth.getMonth() - range + 1, 1);
+    const end = new Date(endMonth.getFullYear(), endMonth.getMonth() + 1, 1); // exclusive
+    return { start, end, endMonth };
+  }
+  function inRange(e, start, end) { const d = new Date(e.t); return d >= start && d < end; }
+  function stats(start, end) {
+    const list = entries.filter(e => inRange(e, start, end));
+    const days = { migraine: new Set(), zolmi: new Set(), advil: new Set() };
+    const doses = { migraine: 0, zolmi: 0, advil: 0 };
+    for (const e of list) { days[e.type].add(dayKey(new Date(e.t))); doses[e.type]++; }
+    return { list, days, doses };
+  }
+  function periodLabel(start, endMonth) {
+    if (range === 1) return monthName(start, { month: 'long', year: 'numeric' });
+    const sameYear = start.getFullYear() === endMonth.getFullYear();
+    return `${monthName(start, sameYear ? { month: 'short' } : { month: 'short', year: 'numeric' })} – ${monthName(endMonth, { month: 'short', year: 'numeric' })}`;
+  }
+  const TOD = [
+    ['Morning', '5am–noon', h => h >= 5 && h < 12],
+    ['Afternoon', 'noon–5pm', h => h >= 12 && h < 17],
+    ['Evening', '5–9pm', h => h >= 17 && h < 21],
+    ['Night', '9pm–5am', h => h >= 21 || h < 5],
+  ];
+
+  function renderSummary() {
+    const { start, end, endMonth } = windowBounds();
+    const today = new Date();
+    const st = stats(start, end);
+    $('sLabel').textContent = periodLabel(start, endMonth);
+    $('sNext').disabled = endOffset >= 0;
+
+    const migDays = st.days.migraine.size;
+    $('tMig').textContent = migDays;
+    $('tMigS').textContent = migDays === 1 ? 'day' : 'days';
+    $('tZol').textContent = st.days.zolmi.size;
+    $('tZolS').textContent = `days · ${st.doses.zolmi} dose${st.doses.zolmi === 1 ? '' : 's'}`;
+    $('tAdv').textContent = st.days.advil.size;
+    $('tAdvS').textContent = `days · ${st.doses.advil} dose${st.doses.advil === 1 ? '' : 's'}`;
+
+    // Days elapsed in the window (don't count the future)
+    const lastDay = end > today ? new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1) : end;
+    const elapsed = Math.max(0, Math.round((lastDay - start) / 86400000));
+
+    // Longest migraine-free stretch within the window (up to today)
+    let best = 0, run = 0;
+    for (let d = new Date(start); d < lastDay; d.setDate(d.getDate() + 1)) {
+      if (st.days.migraine.has(dayKey(d))) run = 0; else best = Math.max(best, ++run);
+    }
+    // Current streak since last migraine (any time)
+    const migs = entries.filter(e => e.type === 'migraine').map(e => new Date(e.t)).sort((a, b) => b - a);
+    let since = '—';
+    if (migs.length) {
+      const a = new Date(migs[0].getFullYear(), migs[0].getMonth(), migs[0].getDate());
+      const b = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const n = Math.round((b - a) / 86400000);
+      since = n === 0 ? 'Today' : `${n} day${n === 1 ? '' : 's'} ago`;
+    }
+    // Treated migraine days: a migraine day where a medicine was also logged
+    const treated = [...st.days.migraine].filter(k => st.days.zolmi.has(k) || st.days.advil.has(k)).length;
+
+    const facts = [
+      ['Last migraine', since],
+      ['Migraine-free days', elapsed ? `${elapsed - migDays} of ${elapsed}` : '—'],
+      ['Longest migraine-free stretch', elapsed ? `${best} day${best === 1 ? '' : 's'}` : '—'],
+      ['Migraine days with medicine', migDays ? `${treated} of ${migDays}` : '—'],
+    ];
+    if (range > 1) facts.splice(1, 0, ['Average per month', `${(migDays / range).toFixed(1)} migraine days`]);
+    $('facts').innerHTML = facts.map(([k, v]) => `<div class="fact"><span>${k}</span><span>${v}</span></div>`).join('');
+
+    // Medication-overuse reminder (monthly view only)
+    const warns = [];
+    if (range === 1) {
+      if (st.days.zolmi.size >= 10) warns.push(`Zolmitriptan was taken on ${st.days.zolmi.size} days this month. Using triptans on 10 or more days a month can lead to medication-overuse headaches — worth mentioning to your doctor.`);
+      if (st.days.advil.size >= 15) warns.push(`Advil was taken on ${st.days.advil.size} days this month. Using it on 15 or more days a month can lead to medication-overuse headaches — worth mentioning to your doctor.`);
+    }
+    $('warnBox').innerHTML = warns.map(w => `<div class="warn">⚠️ ${w}</div>`).join('');
+
+    // Bar chart: 12 months ending at the window's last month
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const m0 = new Date(endMonth.getFullYear(), endMonth.getMonth() - i, 1);
+      const m1 = new Date(m0.getFullYear(), m0.getMonth() + 1, 1);
+      months.push({ m0, n: stats(m0, m1).days.migraine.size, inWin: m0 >= start });
+    }
+    const max = Math.max(4, ...months.map(m => m.n));
+    const peak = Math.max(...months.map(m => m.n));
+    $('bars').innerHTML = months.map((m, i) => {
+      const showLab = (pickedBar === i) || (pickedBar === null && (i === 11 || (m.n === peak && peak > 0)));
+      return `<div class="col${m.inWin ? '' : ' dim'}${pickedBar === i ? ' picked' : ''}" data-i="${i}">
+        ${showLab ? `<div class="lab">${m.n}</div>` : ''}
+        <div class="b" style="height:${m.n ? Math.max(3, (m.n / max) * 100) : 0}%"></div></div>`;
+    }).join('');
+    $('xlabels').innerHTML = months.map(m => `<div>${monthName(m.m0, { month: 'narrow' })}</div>`).join('');
+    $('barCap').textContent = pickedBar === null ? 'Tap a bar for details'
+      : `${monthName(months[pickedBar].m0, { month: 'long', year: 'numeric' })}: ${months[pickedBar].n} migraine day${months[pickedBar].n === 1 ? '' : 's'}`;
+    $('bars').querySelectorAll('.col').forEach(c => c.onclick = () => {
+      const i = +c.dataset.i; pickedBar = pickedBar === i ? null : i; renderSummary();
+    });
+
+    // Time of day
+    const migEntries = st.list.filter(e => e.type === 'migraine');
+    const tod = TOD.map(([name, span, test]) => [name, span, migEntries.filter(e => test(new Date(e.t).getHours())).length]);
+    const tmax = Math.max(1, ...tod.map(t => t[2]));
+    $('tod').innerHTML = migEntries.length
+      ? tod.map(([name, span, n]) => `<div class="hrow" title="${span}"><span>${name}</span>
+          <div class="track"><div class="fill" style="width:${(n / tmax) * 100}%"></div></div><span>${n}</span></div>`).join('')
+        + `<div class="muted">Morning 5am–noon · Afternoon noon–5pm · Evening 5–9pm · Night 9pm–5am</div>`
+      : '<div class="muted">No migraines logged in this period.</div>';
+
+    // Notes
+    const withNotes = st.list.filter(e => e.note).sort((a, b) => b.t.localeCompare(a.t));
+    $('notesList').innerHTML = withNotes.length
+      ? withNotes.map(e => { const d = new Date(e.t); return `<div class="note-item">
+          <div class="meta"><i class="dot ${e.type}"></i>${TYPES[e.type].label} · ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${fmtTime(d)}</div>
+          <div class="txt">${escapeHtml(e.note)}</div></div>`; }).join('')
+      : '<div class="muted">No notes in this period. Tap a logged entry on the Log tab to add one.</div>';
+  }
+
+  function summaryText() {
+    const { start, end, endMonth } = windowBounds();
+    const st = stats(start, end);
+    const lines = [`Migraine summary: ${periodLabel(start, endMonth)}`, '',
+      `Migraine days: ${st.days.migraine.size}${range > 1 ? ` (avg ${(st.days.migraine.size / range).toFixed(1)}/month)` : ''}`,
+      `Zolmitriptan: ${st.doses.zolmi} doses on ${st.days.zolmi.size} days`,
+      `Advil: ${st.doses.advil} doses on ${st.days.advil.size} days`, '', 'Log:'];
+    const byDate = {};
+    for (const e of st.list.slice().sort((a, b) => a.t.localeCompare(b.t))) {
+      const d = new Date(e.t);
+      const k = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+      (byDate[k] ||= []).push(`${TYPES[e.type].label} ${fmtTime(d)}${e.note ? ` (${e.note})` : ''}`);
+    }
+    const keys = Object.keys(byDate);
+    if (!keys.length) lines.push('Nothing logged.');
+    for (const k of keys) lines.push(`${k}: ${byDate[k].join('; ')}`);
+    return lines.join('\n');
+  }
+  $('shareBtn').onclick = async () => {
+    const text = summaryText();
+    if (navigator.share) { try { await navigator.share({ title: 'Migraine summary', text }); return; } catch (err) { if (err.name === 'AbortError') return; } }
+    try { await navigator.clipboard.writeText(text); showToast('Summary copied', false); } catch { alert(text); }
+  };
+
+  $('rangeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+    range = +b.dataset.r; endOffset = 0; pickedBar = null;
+    $('rangeSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    renderSummary();
+  });
+  $('sPrev').onclick = () => { endOffset--; pickedBar = null; renderSummary(); };
+  $('sNext').onclick = () => { if (endOffset < 0) { endOffset++; pickedBar = null; renderSummary(); } };
+
+  function showTab(name) {
+    const sum = name === 'summary';
+    $('logView').hidden = sum; $('summaryView').hidden = !sum;
+    $('tabLog').classList.toggle('on', !sum); $('tabSummary').classList.toggle('on', sum);
+    window.scrollTo(0, 0);
+    if (sum) renderSummary(); else render();
+  }
+  $('tabLog').onclick = () => showTab('log');
+  $('tabSummary').onclick = () => showTab('summary');
+
   // ---------- navigation ----------
   function goMonth(delta) {
     const d = new Date(viewYear, viewMonth + delta, 1);
@@ -417,7 +690,7 @@
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) hiddenAt = Date.now();
-    else if (Date.now() - hiddenAt > 10 * 60 * 1000) goToday();
+    else if (Date.now() - hiddenAt > 10 * 60 * 1000) { showTab('log'); goToday(); }
     else render();
   });
 
