@@ -20,8 +20,8 @@
     --muted: #8a8a8e;
     --line: #e6e4df;
     --migraine: #d93a3a;
-    --zolmi: #c98500;
-    --advil: #1f7ae0;
+    --amber: #c98500; --blue: #1f7ae0; --aqua: #13926a; --violet: #6250d6;
+    --magenta: #d55181; --green: #008300; --gray: #6e6e73;
     --today: #1d1d1f;
     --sel: #f1efe9;
   }
@@ -29,7 +29,8 @@
     :root {
       --bg: #000; --card: #1c1c1e; --text: #f2f2f7; --muted: #8e8e93;
       --line: #2c2c2e; --today: #f2f2f7; --sel: #2c2c2e;
-      --migraine: #d03a34; --zolmi: #bd8a12; --advil: #3d8bf0;
+      --migraine: #d03a34; --amber: #bd8a12; --blue: #3d8bf0; --aqua: #199e70; --violet: #9085e9;
+      --magenta: #d55181; --green: #0ca30c; --gray: #8e8e93;
     }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -60,10 +61,10 @@
   .day.mig { background: color-mix(in srgb, var(--migraine) 14%, transparent); }
   .day.mig.is-sel { background: color-mix(in srgb, var(--migraine) 26%, transparent); }
   .dots { display: flex; gap: 3px; margin-top: 4px; height: 7px; }
-  .dot { width: 7px; height: 7px; border-radius: 4px; }
-  .dot.migraine { background: var(--migraine); }
-  .dot.zolmi { background: var(--zolmi); }
-  .dot.advil { background: var(--advil); }
+  .dot { width: 7px; height: 7px; border-radius: 4px; background: var(--c); flex: none; }
+  .c-red { --c: var(--migraine); } .c-amber { --c: var(--amber); } .c-blue { --c: var(--blue); }
+  .c-aqua { --c: var(--aqua); } .c-violet { --c: var(--violet); } .c-magenta { --c: var(--magenta); }
+  .c-green { --c: var(--green); } .c-gray { --c: var(--gray); }
 
   .legend { display: flex; justify-content: center; gap: 14px; font-size: 13px; color: var(--muted); margin: 10px 0 0; flex-wrap: wrap; }
   .legend span { display: inline-flex; align-items: center; gap: 5px; }
@@ -78,9 +79,9 @@
     display: flex; align-items: center; justify-content: space-between; transition: transform .08s, filter .08s; }
   .big:active { transform: scale(0.98); filter: brightness(0.9); }
   .big small { font-size: 13px; font-weight: 500; opacity: .85; }
-  .big.migraine { background: var(--migraine); }
-  .big.zolmi { background: var(--zolmi); }
-  .big.advil { background: var(--advil); }
+  .big { background: var(--c); gap: 10px; text-align: left; }
+  .big span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .big small { flex: none; }
 
   /* Entries */
   .entries { margin-top: 14px; background: var(--card); border-radius: 16px; overflow: hidden; }
@@ -143,7 +144,9 @@
   .period button:disabled { opacity: .3; }
   .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .tile { background: var(--card); border-radius: 14px; padding: 12px 10px; }
+  .tile { min-width: 0; }
   .tile .k { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .tile .k span { overflow: hidden; text-overflow: ellipsis; }
   .tile .v { font-size: 30px; font-weight: 700; line-height: 1.1; margin-top: 4px; font-variant-numeric: tabular-nums; }
   .tile .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .card { background: var(--card); border-radius: 14px; padding: 14px; margin-top: 10px; }
@@ -171,6 +174,29 @@
   .note-item .txt { white-space: pre-wrap; overflow-wrap: anywhere; }
   .share { width: 100%; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--text); color: var(--bg); font-weight: 700; }
   .muted { color: var(--muted); font-size: 14px; }
+
+  /* Buttons page */
+  .intro { color: var(--muted); font-size: 15px; margin: 0 2px 12px; }
+  .blist { background: var(--card); border-radius: 14px; overflow: hidden; }
+  .brow { display: flex; align-items: center; gap: 12px; padding: 12px 10px 12px 14px; border-top: 1px solid var(--line); }
+  .brow:first-child { border-top: 0; }
+  .brow .dot { width: 14px; height: 14px; border-radius: 7px; }
+  .brow .name { flex: 1; min-width: 0; text-align: left; font-weight: 600; padding: 4px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .brow .name small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+  .brow .mv { width: 34px; height: 34px; border-radius: 17px; background: var(--sel); font-size: 15px; color: var(--muted); }
+  .brow .mv:disabled { opacity: .3; }
+  .brow .restore { padding: 7px 12px; border-radius: 16px; background: var(--sel); font-size: 14px; font-weight: 600; }
+  .add { width: 100%; margin-top: 10px; padding: 15px; border-radius: 14px; background: var(--card); font-weight: 700; font-size: 17px; }
+  .sec { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 22px 4px 8px; }
+  .sheet input[type=text] { font: inherit; font-size: 17px; padding: 12px; border-radius: 12px; border: 1px solid var(--line);
+    width: 100%; background: var(--bg); color: var(--text); margin-bottom: 14px; }
+  .swatches { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .swatches button { width: 38px; height: 38px; border-radius: 19px; background: var(--c); border: 3px solid transparent;
+    box-shadow: 0 0 0 0 var(--text); }
+  .swatches button.on { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--text); }
+  .sheet .seg { background: var(--bg); margin-top: 0; margin-bottom: 6px; }
+  .sheet .seg button { font-size: 13px; padding: 9px 2px; }
+  .sheet .hint { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
 </style>
 </head>
 <body>
@@ -188,23 +214,13 @@
     <div class="dow"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
     <div class="grid" id="grid"></div>
   </div>
-  <div class="legend">
-    <span><i class="dot migraine"></i>Migraine</span>
-    <span><i class="dot zolmi"></i>Zolmitriptan</span>
-    <span><i class="dot advil"></i>Advil</span>
-  </div>
+  <div class="legend" id="legend"></div>
   <div class="summary" id="summary"></div>
 
   <div class="day-title" id="dayTitle"></div>
-  <div class="btns">
-    <button class="big migraine" data-type="migraine">Migraine <small id="hint1"></small></button>
-    <button class="big zolmi" data-type="zolmi">Zolmitriptan <small id="hint2"></small></button>
-    <button class="big advil" data-type="advil">Advil <small id="hint3"></small></button>
-  </div>
+  <div class="btns" id="btns"></div>
 
   <div class="entries" id="entries"></div>
-
-  <div class="footer"><button id="backupBtn">Backup / Restore</button></div>
 </div>
 
 <div class="wrap" id="summaryView" hidden>
@@ -218,11 +234,7 @@
     <button id="sNext" aria-label="Later">›</button>
   </div>
 
-  <div class="tiles">
-    <div class="tile"><div class="k"><i class="dot migraine"></i>Migraine</div><div class="v" id="tMig"></div><div class="s" id="tMigS"></div></div>
-    <div class="tile"><div class="k"><i class="dot zolmi"></i>Zolmitriptan</div><div class="v" id="tZol"></div><div class="s" id="tZolS"></div></div>
-    <div class="tile"><div class="k"><i class="dot advil"></i>Advil</div><div class="v" id="tAdv"></div><div class="s" id="tAdvS"></div></div>
-  </div>
+  <div class="tiles" id="tiles"></div>
   <div id="warnBox"></div>
 
   <div class="card">
@@ -250,6 +262,22 @@
   <button class="share" id="shareBtn">Share summary (for your doctor)</button>
 </div>
 
+<div class="wrap" id="buttonsView" hidden>
+  <div class="month-head"><h1>Buttons</h1></div>
+  <p class="intro">These are the buttons on your Log screen. Tap a medicine to rename it, change its color, or remove it.</p>
+  <div class="blist" id="blist"></div>
+  <button class="add" id="addBtn">＋ Add a medicine</button>
+
+  <div id="removedWrap">
+    <div class="sec">Removed</div>
+    <p class="intro">Past entries for these stay in your history. Tap Restore to bring a button back.</p>
+    <div class="blist" id="rlist"></div>
+  </div>
+
+  <div class="sec">Backup</div>
+  <div class="blist"><div class="brow"><button class="name" id="backupBtn">Backup / Restore<small>Save a copy of your log, or restore one</small></button><span class="chev muted">›</span></div></div>
+</div>
+
 <nav class="tabbar">
   <button id="tabLog" class="on">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
@@ -258,6 +286,10 @@
   <button id="tabSummary">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V13M12 20V6M19 20v-9"/></svg>
     Summary
+  </button>
+  <button id="tabButtons">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+    Buttons
   </button>
 </nav>
 
@@ -292,6 +324,27 @@
   </div>
 </div>
 
+<!-- Add / edit a button -->
+<div class="sheet-bg" id="btnSheet">
+  <div class="sheet">
+    <h2 id="btnTitle"></h2>
+    <label for="btnName">Name</label>
+    <input type="text" id="btnName" maxlength="30" placeholder="e.g. Tylenol, Ubrelvy, Excedrin" autocomplete="off">
+    <label>Color</label>
+    <div class="swatches" id="swatches"></div>
+    <label>Overuse reminder</label>
+    <div class="seg" id="kindSeg">
+      <button data-k="">Off</button><button data-k="triptan">Triptan</button><button data-k="nsaid">Pain reliever</button>
+    </div>
+    <p class="hint" id="kindHint"></p>
+    <div class="row">
+      <button id="btnCancel">Cancel</button>
+      <button id="btnSave" class="primary">Save</button>
+    </div>
+    <button id="btnRemove" class="danger">Remove this button</button>
+  </div>
+</div>
+
 <!-- Backup / restore -->
 <div class="sheet-bg" id="backupSheet">
   <div class="sheet">
@@ -307,12 +360,32 @@
 <script>
 (() => {
   const KEY = 'migraine-log-v1';
-  const TYPES = {
-    migraine: { label: 'Migraine' },
-    zolmi:    { label: 'Zolmitriptan' },
-    advil:    { label: 'Advil' },
-  };
-  const ORDER = ['migraine', 'zolmi', 'advil'];
+  const BKEY = 'migraine-buttons-v1';
+  // Colors a medicine can use (migraine is always red). New medicines get the next unused one.
+  const COLORS = ['amber', 'blue', 'aqua', 'violet', 'magenta', 'green', 'gray'];
+  // Medication-overuse thresholds (days per month).
+  const KINDS = { triptan: { days: 10, word: 'triptans' }, nsaid: { days: 15, word: 'pain relievers' } };
+  const DEFAULT_BUTTONS = [
+    { id: 'migraine', label: 'Migraine', color: 'red' },
+    { id: 'zolmi', label: 'Zolmitriptan', color: 'amber', kind: 'triptan' },
+    { id: 'advil', label: 'Advil', color: 'blue', kind: 'nsaid' },
+  ];
+  // Each button: { id, label, color, kind?, removed? }. Removed buttons are kept so past entries still show.
+  function loadButtons() {
+    let b;
+    try { b = JSON.parse(localStorage.getItem(BKEY)); } catch {}
+    if (!Array.isArray(b) || !b.length) b = DEFAULT_BUTTONS.map(x => ({ ...x }));
+    b = b.filter(x => x.id !== 'migraine');
+    b.unshift({ id: 'migraine', label: 'Migraine', color: 'red' });
+    return b;
+  }
+  let buttons = loadButtons();
+  function saveButtons() { localStorage.setItem(BKEY, JSON.stringify(buttons)); }
+  const btn = id => buttons.find(b => b.id === id) || { id, label: 'Unknown', color: 'gray', removed: true };
+  const label = id => btn(id).label;
+  const order = id => { const i = buttons.findIndex(b => b.id === id); return i < 0 ? 999 : i; };
+  const activeButtons = () => buttons.filter(b => !b.removed);
+  const dot = id => `<i class="dot c-${btn(id).color}"></i>`;
 
   // ---------- storage ----------
   // Each entry: { id, type, t }  where t = ISO timestamp (local time is derived on display)
@@ -321,6 +394,9 @@
   }
   function save() { localStorage.setItem(KEY, JSON.stringify(entries)); }
   let entries = load();
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
 
   // Ask iOS not to evict our data.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
@@ -341,6 +417,7 @@
   }
 
   // ---------- state ----------
+  let tab = 'log';
   let selected = new Date();
   let viewYear = selected.getFullYear();
   let viewMonth = selected.getMonth();
@@ -349,7 +426,8 @@
 
   // ---------- render ----------
   function render() {
-    if (!$('summaryView').hidden) renderSummary();
+    if (tab === 'summary') renderSummary();
+    if (tab === 'buttons') renderButtonsPage();
     const today = new Date();
     const map = byDay();
 
@@ -363,12 +441,12 @@
     for (let i = 0; i < lead; i++) {
       const c = document.createElement('div'); c.className = 'day empty'; grid.appendChild(c);
     }
-    const monthCounts = { migraine: 0, zolmi: 0, advil: 0 };
+    const monthCounts = {};
     for (let d = 1; d <= daysIn; d++) {
       const date = new Date(viewYear, viewMonth, d);
       const list = map[dayKey(date)] || [];
       const has = new Set(list.map(e => e.type));
-      has.forEach(t => monthCounts[t]++);
+      has.forEach(t => monthCounts[t] = (monthCounts[t] || 0) + 1);
 
       const cell = document.createElement('button');
       cell.className = 'day';
@@ -376,14 +454,17 @@
       if (sameDay(date, selected)) cell.classList.add('is-sel');
       if (has.has('migraine')) cell.classList.add('mig');
       cell.innerHTML = `<span class="n">${d}</span><span class="dots">${
-        ORDER.filter(t => has.has(t)).map(t => `<i class="dot ${t}"></i>`).join('')}</span>`;
+        [...has].sort((a, b) => order(a) - order(b)).slice(0, 5).map(dot).join('')}</span>`;
       cell.onclick = () => { selected = date; render(); };
       grid.appendChild(cell);
     }
 
+    // Legend + month counts: active buttons, plus removed ones that appear this month.
+    const shown = buttons.filter(b => !b.removed || monthCounts[b.id]);
+    $('legend').innerHTML = shown.map(b => `<span>${dot(b.id)}${escapeHtml(b.label)}</span>`).join('');
     const plural = (n, w) => `${n} ${w} day${n === 1 ? '' : 's'}`;
-    $('summary').textContent =
-      `${plural(monthCounts.migraine, 'migraine')} · ${plural(monthCounts.zolmi, 'Zolmitriptan')} · ${plural(monthCounts.advil, 'Advil')}`;
+    $('summary').textContent = shown.filter(b => b.id === 'migraine' || monthCounts[b.id]).map(b =>
+      plural(monthCounts[b.id] || 0, b.id === 'migraine' ? 'migraine' : b.label)).join(' · ');
 
     // Selected day
     const isToday = sameDay(selected, today);
@@ -391,7 +472,9 @@
       ? 'Today, ' + selected.toLocaleDateString([], { month: 'long', day: 'numeric' })
       : selected.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
     const hint = isToday ? 'tap to log now' : 'tap to add';
-    $('hint1').textContent = $('hint2').textContent = $('hint3').textContent = hint;
+    $('btns').innerHTML = activeButtons().map(b =>
+      `<button class="big c-${b.color}" data-type="${escapeHtml(b.id)}"><span>${escapeHtml(b.label)}</span><small>${hint}</small></button>`).join('');
+    $('btns').querySelectorAll('.big').forEach(b => b.onclick = () => logTap(b.dataset.type));
 
     const list = (map[dayKey(selected)] || []).slice().sort((a, b) => a.t.localeCompare(b.t));
     const box = $('entries');
@@ -402,7 +485,7 @@
       for (const e of list) {
         const row = document.createElement('button');
         row.className = 'entry';
-        row.innerHTML = `<i class="dot ${e.type}"></i><span class="what">${TYPES[e.type].label}${
+        row.innerHTML = `${dot(e.type)}<span class="what">${escapeHtml(label(e.type))}${
             e.note ? `<span class="note">${escapeHtml(e.note)}</span>` : ''}</span>
           <span class="time">${fmtTime(new Date(e.t))}</span><span class="chev">›</span>`;
         row.onclick = () => openEdit(e.id);
@@ -418,7 +501,7 @@
     entries.push(e); save();
     lastAdded = e.id;
     if (navigator.vibrate) navigator.vibrate(15);
-    showToast(`${TYPES[type].label} logged at ${fmtTime(when)}`);
+    showToast(`${label(type)} logged at ${fmtTime(when)}`);
     render();
   }
   function showToast(msg, undo = true) {
@@ -434,16 +517,15 @@
   };
 
   let pendingType = null;
-  document.querySelectorAll('.big').forEach(b => b.onclick = () => {
-    const type = b.dataset.type;
+  function logTap(type) {
     if (sameDay(selected, new Date())) { addEntry(type, new Date()); return; }
     // Logging on another day: ask for the time.
     pendingType = type;
-    $('timeTitle').textContent = `${TYPES[type].label} on ${selected.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+    $('timeTitle').textContent = `${label(type)} on ${selected.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
     const now = new Date();
     $('timeInput').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
     $('timeSheet').classList.add('show');
-  });
+  }
   $('timeCancel').onclick = () => $('timeSheet').classList.remove('show');
   $('timeSave').onclick = () => {
     const [h, m] = ($('timeInput').value || '12:00').split(':').map(Number);
@@ -453,16 +535,13 @@
   };
 
   // ---------- editing ----------
-  function escapeHtml(str) {
-    return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  }
   let editingId = null;
   function openEdit(id) {
     const e = entries.find(x => x.id === id);
     if (!e) return;
     editingId = id;
     const d = new Date(e.t);
-    $('editTitle').textContent = `${TYPES[e.type].label} · ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+    $('editTitle').textContent = `${label(e.type)} · ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
     $('editTime').value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
     $('editNote').value = e.note || '';
     $('editSheet').classList.add('show');
@@ -486,7 +565,7 @@
   };
   $('editDelete').onclick = () => {
     const e = entries.find(x => x.id === editingId);
-    if (e && confirm(`Delete ${TYPES[e.type].label} at ${fmtTime(new Date(e.t))}?`)) {
+    if (e && confirm(`Delete ${label(e.type)} at ${fmtTime(new Date(e.t))}?`)) {
       entries = entries.filter(x => x.id !== editingId); save(); closeEdit(); render();
     }
   };
@@ -512,10 +591,13 @@
   function inRange(e, start, end) { const d = new Date(e.t); return d >= start && d < end; }
   function stats(start, end) {
     const list = entries.filter(e => inRange(e, start, end));
-    const days = { migraine: new Set(), zolmi: new Set(), advil: new Set() };
-    const doses = { migraine: 0, zolmi: 0, advil: 0 };
-    for (const e of list) { days[e.type].add(dayKey(new Date(e.t))); doses[e.type]++; }
-    return { list, days, doses };
+    const days = { migraine: new Set() }, doses = {};
+    for (const e of list) { (days[e.type] ||= new Set()).add(dayKey(new Date(e.t))); doses[e.type] = (doses[e.type] || 0) + 1; }
+    const nDays = id => (days[id] ? days[id].size : 0);
+    const nDoses = id => doses[id] || 0;
+    // Medicines to report: active ones, plus removed ones used in this period.
+    const meds = buttons.filter(b => b.id !== 'migraine' && (!b.removed || nDoses(b.id)));
+    return { list, days, doses, nDays, nDoses, meds };
   }
   function periodLabel(start, endMonth) {
     if (range === 1) return monthName(start, { month: 'long', year: 'numeric' });
@@ -537,12 +619,10 @@
     $('sNext').disabled = endOffset >= 0;
 
     const migDays = st.days.migraine.size;
-    $('tMig').textContent = migDays;
-    $('tMigS').textContent = migDays === 1 ? 'day' : 'days';
-    $('tZol').textContent = st.days.zolmi.size;
-    $('tZolS').textContent = `days · ${st.doses.zolmi} dose${st.doses.zolmi === 1 ? '' : 's'}`;
-    $('tAdv').textContent = st.days.advil.size;
-    $('tAdvS').textContent = `days · ${st.doses.advil} dose${st.doses.advil === 1 ? '' : 's'}`;
+    const tile = (id, v, sub) => `<div class="tile"><div class="k">${dot(id)}<span>${escapeHtml(label(id))}</span></div>
+      <div class="v">${v}</div><div class="s">${sub}</div></div>`;
+    $('tiles').innerHTML = tile('migraine', migDays, migDays === 1 ? 'day' : 'days')
+      + st.meds.map(b => tile(b.id, st.nDays(b.id), `days · ${st.nDoses(b.id)} dose${st.nDoses(b.id) === 1 ? '' : 's'}`)).join('');
 
     // Days elapsed in the window (don't count the future)
     const lastDay = end > today ? new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1) : end;
@@ -563,7 +643,7 @@
       since = n === 0 ? 'Today' : `${n} day${n === 1 ? '' : 's'} ago`;
     }
     // Treated migraine days: a migraine day where a medicine was also logged
-    const treated = [...st.days.migraine].filter(k => st.days.zolmi.has(k) || st.days.advil.has(k)).length;
+    const treated = [...st.days.migraine].filter(k => Object.keys(st.days).some(id => id !== 'migraine' && st.days[id].has(k))).length;
 
     const facts = [
       ['Last migraine', since],
@@ -577,8 +657,10 @@
     // Medication-overuse reminder (monthly view only)
     const warns = [];
     if (range === 1) {
-      if (st.days.zolmi.size >= 10) warns.push(`Zolmitriptan was taken on ${st.days.zolmi.size} days this month. Using triptans on 10 or more days a month can lead to medication-overuse headaches — worth mentioning to your doctor.`);
-      if (st.days.advil.size >= 15) warns.push(`Advil was taken on ${st.days.advil.size} days this month. Using it on 15 or more days a month can lead to medication-overuse headaches — worth mentioning to your doctor.`);
+      for (const b of st.meds) {
+        const k = KINDS[b.kind], n = st.nDays(b.id);
+        if (k && n >= k.days) warns.push(`${escapeHtml(b.label)} was taken on ${n} days this month. Using ${k.word} on ${k.days} or more days a month can lead to medication-overuse headaches — worth mentioning to your doctor.`);
+      }
     }
     $('warnBox').innerHTML = warns.map(w => `<div class="warn">⚠️ ${w}</div>`).join('');
 
@@ -618,7 +700,7 @@
     const withNotes = st.list.filter(e => e.note).sort((a, b) => b.t.localeCompare(a.t));
     $('notesList').innerHTML = withNotes.length
       ? withNotes.map(e => { const d = new Date(e.t); return `<div class="note-item">
-          <div class="meta"><i class="dot ${e.type}"></i>${TYPES[e.type].label} · ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${fmtTime(d)}</div>
+          <div class="meta">${dot(e.type)}${escapeHtml(label(e.type))} · ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${fmtTime(d)}</div>
           <div class="txt">${escapeHtml(e.note)}</div></div>`; }).join('')
       : '<div class="muted">No notes in this period. Tap a logged entry on the Log tab to add one.</div>';
   }
@@ -628,13 +710,12 @@
     const st = stats(start, end);
     const lines = [`Migraine summary: ${periodLabel(start, endMonth)}`, '',
       `Migraine days: ${st.days.migraine.size}${range > 1 ? ` (avg ${(st.days.migraine.size / range).toFixed(1)}/month)` : ''}`,
-      `Zolmitriptan: ${st.doses.zolmi} doses on ${st.days.zolmi.size} days`,
-      `Advil: ${st.doses.advil} doses on ${st.days.advil.size} days`, '', 'Log:'];
+      ...st.meds.map(b => `${b.label}: ${st.nDoses(b.id)} doses on ${st.nDays(b.id)} days`), '', 'Log:'];
     const byDate = {};
     for (const e of st.list.slice().sort((a, b) => a.t.localeCompare(b.t))) {
       const d = new Date(e.t);
       const k = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-      (byDate[k] ||= []).push(`${TYPES[e.type].label} ${fmtTime(d)}${e.note ? ` (${e.note})` : ''}`);
+      (byDate[k] ||= []).push(`${label(e.type)} ${fmtTime(d)}${e.note ? ` (${e.note})` : ''}`);
     }
     const keys = Object.keys(byDate);
     if (!keys.length) lines.push('Nothing logged.');
@@ -656,14 +737,114 @@
   $('sNext').onclick = () => { if (endOffset < 0) { endOffset++; pickedBar = null; renderSummary(); } };
 
   function showTab(name) {
-    const sum = name === 'summary';
-    $('logView').hidden = sum; $('summaryView').hidden = !sum;
-    $('tabLog').classList.toggle('on', !sum); $('tabSummary').classList.toggle('on', sum);
+    tab = name;
+    $('logView').hidden = name !== 'log'; $('summaryView').hidden = name !== 'summary'; $('buttonsView').hidden = name !== 'buttons';
+    $('tabLog').classList.toggle('on', name === 'log'); $('tabSummary').classList.toggle('on', name === 'summary');
+    $('tabButtons').classList.toggle('on', name === 'buttons');
     window.scrollTo(0, 0);
-    if (sum) renderSummary(); else render();
+    render();
   }
   $('tabLog').onclick = () => showTab('log');
   $('tabSummary').onclick = () => showTab('summary');
+  $('tabButtons').onclick = () => showTab('buttons');
+
+  // ---------- buttons page ----------
+  function renderButtonsPage() {
+    const active = activeButtons();
+    const meds = active.filter(b => b.id !== 'migraine');
+    $('blist').innerHTML = active.map(b => {
+      if (b.id === 'migraine') return `<div class="brow">${dot(b.id)}<span class="name">Migraine<small>Always shown</small></span></div>`;
+      const i = meds.indexOf(b);
+      const sub = b.kind ? `Overuse reminder: ${b.kind === 'triptan' ? 'triptan' : 'pain reliever'}` : 'Medicine';
+      return `<div class="brow">${dot(b.id)}<button class="name" data-edit="${escapeHtml(b.id)}">${escapeHtml(b.label)}<small>${sub}</small></button>
+        <button class="mv" data-up="${escapeHtml(b.id)}" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button class="mv" data-down="${escapeHtml(b.id)}" aria-label="Move down" ${i === meds.length - 1 ? 'disabled' : ''}>▼</button></div>`;
+    }).join('');
+    const removed = buttons.filter(b => b.removed);
+    $('removedWrap').hidden = !removed.length;
+    $('rlist').innerHTML = removed.map(b => `<div class="brow">${dot(b.id)}<span class="name">${escapeHtml(b.label)}</span>
+      <button class="restore" data-restore="${escapeHtml(b.id)}">Restore</button></div>`).join('');
+
+    $('blist').querySelectorAll('[data-edit]').forEach(x => x.onclick = () => openBtn(x.dataset.edit));
+    const move = (id, dir) => {
+      // Swap with the neighboring active medicine (removed ones in between are skipped).
+      const list = activeButtons().filter(b => b.id !== 'migraine');
+      const i = list.findIndex(b => b.id === id), j = i + dir;
+      if (j < 0 || j >= list.length) return;
+      const a = buttons.indexOf(list[i]), c = buttons.indexOf(list[j]);
+      [buttons[a], buttons[c]] = [buttons[c], buttons[a]];
+      saveButtons(); renderButtonsPage();
+    };
+    $('blist').querySelectorAll('[data-up]').forEach(x => x.onclick = () => move(x.dataset.up, -1));
+    $('blist').querySelectorAll('[data-down]').forEach(x => x.onclick = () => move(x.dataset.down, 1));
+    $('rlist').querySelectorAll('[data-restore]').forEach(x => x.onclick = () => {
+      const b = btn(x.dataset.restore); delete b.removed;
+      // Put it back at the end of the active list.
+      buttons = buttons.filter(y => y !== b); buttons.push(b);
+      saveButtons(); renderButtonsPage(); showToast(`${b.label} is back on your Log screen`, false);
+    });
+  }
+
+  let editingBtn = null, pickColor = null, pickKind = '';
+  function paintSheet() {
+    $('swatches').innerHTML = COLORS.map(c =>
+      `<button class="c-${c}${c === pickColor ? ' on' : ''}" data-c="${c}" aria-label="${c}"></button>`).join('');
+    $('swatches').querySelectorAll('button').forEach(x => x.onclick = () => { pickColor = x.dataset.c; paintSheet(); });
+    $('kindSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.k === pickKind));
+    $('kindHint').textContent = pickKind === 'triptan'
+      ? 'The Summary will warn you if you take it on 10 or more days in a month (e.g. Zolmitriptan, Sumatriptan, Rizatriptan).'
+      : pickKind === 'nsaid'
+      ? 'The Summary will warn you if you take it on 15 or more days in a month (e.g. Advil, Aleve, Tylenol).'
+      : 'No overuse warning for this medicine.';
+  }
+  $('kindSeg').querySelectorAll('button').forEach(x => x.onclick = () => { pickKind = x.dataset.k; paintSheet(); });
+  function openBtn(id) {
+    editingBtn = id || null;
+    const b = id ? btn(id) : null;
+    $('btnTitle').textContent = b ? 'Edit button' : 'Add a medicine';
+    $('btnName').value = b ? b.label : '';
+    const used = new Set(activeButtons().map(x => x.color));
+    pickColor = b ? b.color : (COLORS.find(c => !used.has(c)) || 'gray');
+    pickKind = b ? (b.kind || '') : '';
+    $('btnRemove').hidden = !b;
+    paintSheet();
+    $('btnSheet').classList.add('show');
+    if (!b) setTimeout(() => $('btnName').focus(), 50);
+  }
+  $('addBtn').onclick = () => openBtn(null);
+  $('btnCancel').onclick = () => $('btnSheet').classList.remove('show');
+  $('btnSave').onclick = () => {
+    const name = $('btnName').value.trim().replace(/\s+/g, ' ');
+    if (!name) { $('btnName').focus(); return; }
+    if (name.toLowerCase() === 'migraine' || activeButtons().some(b => b.id !== editingBtn && b.label.toLowerCase() === name.toLowerCase())) {
+      alert(`You already have a "${name}" button.`); return;
+    }
+    if (editingBtn) {
+      const b = btn(editingBtn);
+      b.label = name; b.color = pickColor;
+      if (pickKind) b.kind = pickKind; else delete b.kind;
+    } else {
+      // Re-adding a medicine you removed earlier brings back its history.
+      const old = buttons.find(b => b.removed && b.label.toLowerCase() === name.toLowerCase());
+      if (old) { buttons = buttons.filter(b => b !== old); delete old.removed; }
+      const b = old || { id: 'm' + Date.now().toString(36) };
+      Object.assign(b, { label: name, color: pickColor });
+      if (pickKind) b.kind = pickKind; else delete b.kind;
+      buttons.push(b);
+    }
+    saveButtons();
+    $('btnSheet').classList.remove('show');
+    renderButtonsPage();
+    showToast(editingBtn ? 'Button updated' : `${name} added to your Log screen`, false);
+  };
+  $('btnRemove').onclick = () => {
+    const b = btn(editingBtn);
+    if (!confirm(`Remove the ${b.label} button?\n\nYour past ${b.label} entries stay in your history, and you can restore it any time.`)) return;
+    b.removed = true; saveButtons();
+    $('btnSheet').classList.remove('show');
+    renderButtonsPage();
+    showToast(`${b.label} removed`, false);
+  };
 
   // ---------- navigation ----------
   function goMonth(delta) {
@@ -690,7 +871,7 @@
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) hiddenAt = Date.now();
-    else if (Date.now() - hiddenAt > 10 * 60 * 1000) { showTab('log'); goToday(); }
+    else if (Date.now() - hiddenAt > 10 * 60 * 1000 && tab !== 'buttons') { showTab('log'); goToday(); }
     else render();
   });
 
@@ -699,7 +880,7 @@
   $('backupClose').onclick = () => $('backupSheet').classList.remove('show');
   $('exportBtn').onclick = async () => {
     const name = `migraine-backup-${dayKey(new Date())}.json`;
-    const blob = new Blob([JSON.stringify({ app: 'migraine-log', version: 1, entries }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ app: 'migraine-log', version: 2, buttons, entries }, null, 2)], { type: 'application/json' });
     const file = new File([blob], name, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file], title: 'Migraine backup' }); return; } catch (err) { if (err.name === 'AbortError') return; }
@@ -716,8 +897,20 @@
       const data = JSON.parse(await f.text());
       const incoming = Array.isArray(data) ? data : data.entries;
       if (!Array.isArray(incoming)) throw new Error('bad file');
-      const valid = incoming.filter(e => e && TYPES[e.type] && !isNaN(Date.parse(e.t)) && e.id
+      // Bring over any buttons from the backup that this phone doesn't have yet.
+      if (Array.isArray(data.buttons)) {
+        for (const b of data.buttons) {
+          if (!b || typeof b.id !== 'string' || typeof b.label !== 'string' || buttons.some(x => x.id === b.id)) continue;
+          buttons.push({ id: b.id, label: b.label.slice(0, 30), color: COLORS.includes(b.color) ? b.color : 'gray',
+            ...(KINDS[b.kind] ? { kind: b.kind } : {}), ...(b.removed ? { removed: true } : {}) });
+        }
+      }
+      const valid = incoming.filter(e => e && typeof e.type === 'string' && !isNaN(Date.parse(e.t)) && e.id
         && (e.note === undefined || typeof e.note === 'string'));
+      // Older backups only have entries: make sure every type has a button (kept as removed).
+      for (const e of valid) if (!buttons.some(b => b.id === e.type))
+        buttons.push({ id: e.type, label: e.type, color: 'gray', removed: true });
+      saveButtons();
       const ids = new Set(entries.map(e => e.id));
       const added = valid.filter(e => !ids.has(e.id));
       entries = entries.concat(added); save(); render();
