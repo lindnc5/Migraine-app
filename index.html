@@ -216,6 +216,23 @@
   .sheet { max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .toast .acts { display: flex; gap: 14px; }
 
+  /* Migraine end time */
+  .ongoing { display: flex; align-items: center; gap: 12px; margin: 14px 0 0; padding: 12px 12px 12px 14px; border-radius: 14px;
+    background: color-mix(in srgb, var(--migraine) 20%, var(--card)); }
+  .ongoing .txt { flex: 1; min-width: 0; text-align: left; }
+  .ongoing .txt b { display: block; }
+  .ongoing .txt span { font-size: 14px; color: var(--muted); }
+  .ongoing .endnow { padding: 10px 16px; border-radius: 12px; background: var(--migraine); color: #fff; font-weight: 700; flex: none; }
+  .entry .dur { font-weight: 400; font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .entry .live { color: var(--migraine); font-weight: 600; }
+  .sheet input[type=datetime-local] + .endrow { margin-top: 0; }
+  #editStartDT { margin-bottom: 14px !important; }
+  .sheet input[type=datetime-local] { font: inherit; font-size: 20px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line);
+    width: 100%; background: var(--bg); color: var(--text); margin-bottom: 6px; min-height: 52px; }
+  .sheet .endadd { width: 100%; padding: 14px; border-radius: 12px; background: var(--sel); font-weight: 600; margin-bottom: 14px; }
+  .sheet .endrow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 14px; color: var(--muted); }
+  .sheet .linkbtn { color: var(--muted); text-decoration: underline; font-size: 14px; padding: 4px 0; }
+
   /* Buttons page */
   .intro { color: var(--muted); font-size: 15px; margin: 0 2px 12px; }
   .blist { background: var(--card); border-radius: 14px; overflow: hidden; }
@@ -257,6 +274,11 @@
   </div>
   <div class="legend" id="legend"></div>
   <div class="summary" id="summary"></div>
+
+  <div class="ongoing" id="ongoing" hidden>
+    <button class="txt" id="ongoingTxt"></button>
+    <button class="endnow" id="endNow">End now</button>
+  </div>
 
   <div class="day-title" id="dayTitle"></div>
   <div class="btns" id="btns"></div>
@@ -354,7 +376,7 @@
   </button>
 </nav>
 
-<div class="toast" id="toast"><span id="toastMsg"></span><span class="acts"><button id="tagsBtn">Add tags</button><button id="undoBtn">Undo</button></span></div>
+<div class="toast" id="toast"><span id="toastMsg"></span><span class="acts"><button id="actBtn"></button><button id="undoBtn">Undo</button></span></div>
 
 <!-- Pick a time when logging on a day other than today -->
 <div class="sheet-bg" id="timeSheet">
@@ -373,8 +395,17 @@
 <div class="sheet-bg" id="editSheet">
   <div class="sheet">
     <h2 id="editTitle"></h2>
-    <label for="editTime">Time</label>
+    <label for="editTime" id="timeLabel">Time</label>
     <input type="time" id="editTime">
+    <input type="datetime-local" id="editStartDT">
+    <div id="endSection">
+      <label for="editEnd">Ended</label>
+      <button class="endadd" id="endAdd">＋ Add end time</button>
+      <div id="endSet">
+        <input type="datetime-local" id="editEnd">
+        <div class="endrow"><span id="endDur"></span><button class="linkbtn" id="endClear">Remove end time</button></div>
+      </div>
+    </div>
     <div id="tagSection">
       <label for="tagInput">Tags</label>
       <div class="chips" id="tagChips"></div>
@@ -506,12 +537,35 @@
   const sameDay = (a, b) => dayKey(a) === dayKey(b);
   const fmtTime = d => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
+  // A migraine with an end time covers every calendar day from its start to its end.
+  function daysOf(e) {
+    const s = new Date(e.t);
+    const keys = [dayKey(s)];
+    if (e.type === 'migraine' && e.end) {
+      const end = new Date(e.end);
+      const d = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 1);
+      while (d <= end && keys.length < 31) { keys.push(dayKey(d)); d.setDate(d.getDate() + 1); }
+    }
+    return keys;
+  }
+  // No end time and started in the last 24 hours = still going.
+  const ONGOING_MS = 24 * 3600 * 1000;
+  const isOngoing = e => e.type === 'migraine' && !e.end && Date.now() - new Date(e.t) < ONGOING_MS;
+  function fmtDur(ms) {
+    const m = Math.max(0, Math.round(ms / 60000));
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60), d = Math.floor(h / 24);
+    if (d) return `${d}d ${h % 24}h`;
+    return m % 60 ? `${h}h ${m % 60}m` : `${h}h`;
+  }
+  const fmtWhen = (d, ref) => sameDay(d, ref) ? fmtTime(d) : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${fmtTime(d)}`;
+  function toLocalInput(d) {
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
   function byDay() {
     const map = {};
-    for (const e of entries) {
-      const k = dayKey(new Date(e.t));
-      (map[k] ||= []).push(e);
-    }
+    for (const e of entries) for (const k of daysOf(e)) (map[k] ||= []).push(e);
     return map;
   }
 
@@ -575,7 +629,18 @@
       `<button class="big c-${b.color}" data-type="${escapeHtml(b.id)}"><span>${escapeHtml(b.label)}</span><small>${hint}</small></button>`).join('');
     $('btns').querySelectorAll('.big').forEach(b => b.onclick = () => logTap(b.dataset.type));
 
-    const list = (map[dayKey(selected)] || []).slice().sort((a, b) => a.t.localeCompare(b.t));
+    const selKey = dayKey(selected);
+    const list = (map[selKey] || []).slice().sort((a, b) => a.t.localeCompare(b.t));
+
+    // Banner for a migraine that is still going, with one-tap End now.
+    const live = entries.filter(isOngoing).sort((a, b) => b.t.localeCompare(a.t))[0];
+    $('ongoing').hidden = !live;
+    if (live) {
+      const st = new Date(live.t);
+      $('ongoingTxt').innerHTML = `<b>Migraine ongoing</b><span>Started ${escapeHtml(fmtWhen(st, new Date()))} · ${fmtDur(Date.now() - st)} so far</span>`;
+      $('ongoingTxt').onclick = () => openEdit(live.id);
+      $('endNow').onclick = () => endMigraine(live.id);
+    }
     const box = $('entries');
     if (!list.length) {
       box.innerHTML = `<div class="none">Nothing logged ${isToday ? 'today' : 'this day'}</div>`;
@@ -584,10 +649,21 @@
       for (const e of list) {
         const row = document.createElement('button');
         row.className = 'entry';
+        const st = new Date(e.t), continued = dayKey(st) !== selKey;
+        let dur = '', timeTxt = fmtTime(st);
+        if (e.type === 'migraine') {
+          if (e.end) {
+            const en = new Date(e.end);
+            dur = continued ? `Continued from ${st.toLocaleDateString([], { month: 'short', day: 'numeric' })} · ended ${escapeHtml(fmtWhen(en, selected))}`
+                            : `Until ${escapeHtml(fmtWhen(en, st))} · ${fmtDur(en - st)}`;
+            if (continued) timeTxt = '';
+          } else if (isOngoing(e)) dur = `<span class="live">Ongoing · ${fmtDur(Date.now() - st)}</span>`;
+        }
         row.innerHTML = `${dot(e.type)}<span class="what">${escapeHtml(label(e.type))}${
+            dur ? `<span class="dur">${dur}</span>` : ''}${
             e.tags && e.tags.length ? `<span class="tags">${e.tags.map(t => `<span class="tagmini">${escapeHtml(t)}</span>`).join('')}</span>` : ''}${
             e.note ? `<span class="note">${escapeHtml(e.note)}</span>` : ''}</span>
-          <span class="time">${fmtTime(new Date(e.t))}</span><span class="chev">›</span>`;
+          <span class="time">${timeTxt}</span><span class="chev">›</span>`;
         row.onclick = () => openEdit(e.id);
         box.appendChild(row);
       }
@@ -601,27 +677,44 @@
     entries.push(e); save();
     lastAdded = e.id;
     if (navigator.vibrate) navigator.vibrate(15);
-    showToast(`${label(type)} logged at ${fmtTime(when)}`, true, type === 'migraine' ? e.id : null);
+    showToast(`${label(type)} logged at ${fmtTime(when)}`, {
+      undo: () => { entries = entries.filter(x => x.id !== e.id); save(); },
+      action: type === 'migraine' ? { label: 'Add tags', fn: () => openEdit(e.id, true) } : null,
+    });
     render();
   }
-  let toastTagId = null;
-  function showToast(msg, undo = true, tagId = null) {
+  let toastUndo = null, toastAction = null;
+  function showToast(msg, opts = {}) {
     $('toastMsg').textContent = msg;
-    $('undoBtn').style.display = undo ? '' : 'none';
-    toastTagId = tagId;
-    $('tagsBtn').style.display = tagId ? '' : 'none';
+    toastUndo = opts.undo || null; toastAction = opts.action || null;
+    $('undoBtn').style.display = toastUndo ? '' : 'none';
+    $('actBtn').style.display = toastAction ? '' : 'none';
+    if (toastAction) $('actBtn').textContent = toastAction.label;
     $('toast').classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => $('toast').classList.remove('show'), 4000);
   }
-  $('tagsBtn').onclick = () => {
+  $('actBtn').onclick = () => {
     $('toast').classList.remove('show');
-    if (toastTagId) openEdit(toastTagId, true);
+    if (toastAction) toastAction.fn();
   };
   $('undoBtn').onclick = () => {
-    entries = entries.filter(x => x.id !== lastAdded); save();
-    $('toast').classList.remove('show'); render();
+    $('toast').classList.remove('show');
+    if (toastUndo) { toastUndo(); render(); }
   };
+
+  function endMigraine(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    const now = new Date();
+    e.end = now.toISOString(); save();
+    if (navigator.vibrate) navigator.vibrate(15);
+    showToast(`Migraine ended · lasted ${fmtDur(now - new Date(e.t))}`, {
+      undo: () => { delete e.end; save(); },
+      action: { label: 'Adjust', fn: () => openEdit(e.id) },
+    });
+    render();
+  }
 
   let pendingType = null;
   function logTap(type) {
@@ -704,25 +797,58 @@
     const d = new Date(e.t);
     $('editTitle').textContent = `${label(e.type)} · ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
     $('editTime').value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    $('timeLabel').textContent = isMig ? 'Started' : 'Time';
+    // Migraines get a full date + time so the start can move past midnight.
+    $('editTime').hidden = isMig; $('editStartDT').hidden = !isMig;
+    $('timeLabel').htmlFor = isMig ? 'editStartDT' : 'editTime';
+    $('editStartDT').value = toLocalInput(d);
+    $('endSection').hidden = !isMig;
+    if (isMig) showEnd(e.end ? new Date(e.end) : null);
     $('editNote').value = e.note || '';
     $('editSheet').classList.add('show');
     $('editSheet').querySelector('.sheet').scrollTop = 0;
     if (focusTags && isMig) setTimeout(() => $('tagInput').focus(), 50);
   }
   function closeEdit() { $('editSheet').classList.remove('show'); editingId = null; }
+  function editStart() {
+    const e = entries.find(x => x.id === editingId);
+    if (e.type === 'migraine' && $('editStartDT').value) return new Date($('editStartDT').value);
+    const d = new Date(e.t);
+    if ($('editTime').value) { const [h, m] = $('editTime').value.split(':').map(Number); d.setHours(h, m, 0, 0); }
+    return d;
+  }
+  function showEnd(end) {
+    $('endAdd').hidden = !!end; $('endSet').hidden = !end;
+    if (end) $('editEnd').value = toLocalInput(end);
+    updateEndDur();
+  }
+  function updateEndDur() {
+    if ($('endSet').hidden || !$('editEnd').value || !editingId) return;
+    const ms = new Date($('editEnd').value) - editStart();
+    $('endDur').textContent = ms >= 0 ? `Lasted ${fmtDur(ms)}` : 'End must be after the start';
+  }
+  $('endAdd').onclick = () => {
+    // Default to now; if that's before the start (an old migraine), default to one hour after it.
+    const st = editStart(), now = new Date();
+    showEnd(now > st ? now : new Date(st.getTime() + 3600000));
+  };
+  $('endClear').onclick = () => { $('editEnd').value = ''; showEnd(null); };
+  $('editEnd').addEventListener('input', updateEndDur);
+  $('editTime').addEventListener('input', updateEndDur);
+  $('editStartDT').addEventListener('input', updateEndDur);
   $('editCancel').onclick = closeEdit;
   $('editSave').onclick = () => {
     const e = entries.find(x => x.id === editingId);
     if (e) {
-      const d = new Date(e.t);
-      if ($('editTime').value) {
-        const [h, m] = $('editTime').value.split(':').map(Number);
-        d.setHours(h, m, 0, 0);
-        e.t = d.toISOString();
-      }
+      const hasEnd = e.type === 'migraine' && !$('endSet').hidden && $('editEnd').value;
+      if (hasEnd && new Date($('editEnd').value) < editStart()) { alert('The end time has to be after the start time.'); return; }
+      const st = editStart();
+      // Only rewrite the start if it was actually changed (keeps the exact logged second otherwise).
+      if (Math.floor(st / 60000) !== Math.floor(new Date(e.t) / 60000)) e.t = st.toISOString();
       const note = $('editNote').value.trim();
       if (note) e.note = note; else delete e.note;
       if (e.type === 'migraine') {
+        if (hasEnd) e.end = new Date($('editEnd').value).toISOString(); else delete e.end;
         if (cleanTag($('tagInput').value)) addEditTag($('tagInput').value); // finish a half-typed tag
         if (editTags.length) e.tags = editTags.slice(); else delete e.tags;
       }
@@ -760,11 +886,16 @@
     const list = entries.filter(e => inRange(e, start, end));
     const days = { migraine: new Set() }, doses = {};
     for (const e of list) { (days[e.type] ||= new Set()).add(dayKey(new Date(e.t))); doses[e.type] = (doses[e.type] || 0) + 1; }
+    // Migraines that run past midnight count every day they cover (including ones that started before this period).
+    const k0 = dayKey(start), k1 = dayKey(new Date(end - 1));
+    for (const e of entries) if (e.type === 'migraine' && e.end)
+      for (const k of daysOf(e)) if (k >= k0 && k <= k1) days.migraine.add(k);
+    const lens = list.filter(e => e.type === 'migraine' && e.end).map(e => new Date(e.end) - new Date(e.t)).filter(ms => ms > 0);
     const nDays = id => (days[id] ? days[id].size : 0);
     const nDoses = id => doses[id] || 0;
     // Medicines to report: active ones, plus removed ones used in this period.
     const meds = buttons.filter(b => b.id !== 'migraine' && (!b.removed || nDoses(b.id)));
-    return { list, days, doses, nDays, nDoses, meds };
+    return { list, days, doses, nDays, nDoses, meds, lens };
   }
   function periodLabel(start, endMonth) {
     if (range === 1) return monthName(start, { month: 'long', year: 'numeric' });
@@ -801,7 +932,7 @@
       if (st.days.migraine.has(dayKey(d))) run = 0; else best = Math.max(best, ++run);
     }
     // Current streak since last migraine (any time)
-    const migs = entries.filter(e => e.type === 'migraine').map(e => new Date(e.t)).sort((a, b) => b - a);
+    const migs = entries.filter(e => e.type === 'migraine').map(e => new Date(e.end || e.t)).sort((a, b) => b - a);
     let since = '—';
     if (migs.length) {
       const a = new Date(migs[0].getFullYear(), migs[0].getMonth(), migs[0].getDate());
@@ -812,12 +943,17 @@
     // Treated migraine days: a migraine day where a medicine was also logged
     const treated = [...st.days.migraine].filter(k => Object.keys(st.days).some(id => id !== 'migraine' && st.days[id].has(k))).length;
 
+    const migEntriesCount = st.list.filter(e => e.type === 'migraine').length;
+    if (entries.some(isOngoing)) since = 'Ongoing now';
     const facts = [
       ['Last migraine', since],
       ['Migraine-free days', elapsed ? `${elapsed - migDays} of ${elapsed}` : '—'],
       ['Longest migraine-free stretch', elapsed ? `${best} day${best === 1 ? '' : 's'}` : '—'],
       ['Migraine days with medicine', migDays ? `${treated} of ${migDays}` : '—'],
+      ['Average migraine length', st.lens.length ? fmtDur(st.lens.reduce((a, b) => a + b, 0) / st.lens.length) : '—'],
+      ['Longest migraine', st.lens.length ? fmtDur(Math.max(...st.lens)) : '—'],
     ];
+    if (st.lens.length && st.lens.length < migEntriesCount) facts.push(['Migraines with an end time', `${st.lens.length} of ${migEntriesCount}`]);
     if (range > 1) facts.splice(1, 0, ['Average per month', `${(migDays / range).toFixed(1)} migraine days`]);
     $('facts').innerHTML = facts.map(([k, v]) => `<div class="fact"><span>${k}</span><span>${v}</span></div>`).join('');
 
@@ -897,12 +1033,14 @@
       (tagDays[t.toLowerCase()] ||= { t, days: new Set() }).days.add(dayKey(new Date(e.t)));
     const top = Object.values(tagDays).sort((a, b) => b.days.size - a.days.size);
     if (top.length) lines.push(`Tags: ${top.map(x => `${x.t} (${x.days.size})`).join(', ')}`);
+    if (st.lens.length) lines.push(`Average migraine length: ${fmtDur(st.lens.reduce((a, b) => a + b, 0) / st.lens.length)} (longest ${fmtDur(Math.max(...st.lens))})`);
     lines.push('', 'Log:');
     const byDate = {};
     for (const e of st.list.slice().sort((a, b) => a.t.localeCompare(b.t))) {
       const d = new Date(e.t);
       const k = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-      (byDate[k] ||= []).push(`${label(e.type)} ${fmtTime(d)}${e.tags && e.tags.length ? ` [${e.tags.join(', ')}]` : ''}${e.note ? ` (${e.note})` : ''}`);
+      const endTxt = e.type === 'migraine' && e.end ? `–${fmtWhen(new Date(e.end), d)} (${fmtDur(new Date(e.end) - d)})` : '';
+      (byDate[k] ||= []).push(`${label(e.type)} ${fmtTime(d)}${endTxt}${e.tags && e.tags.length ? ` [${e.tags.join(', ')}]` : ''}${e.note ? ` (${e.note})` : ''}`);
     }
     const keys = Object.keys(byDate);
     if (!keys.length) lines.push('Nothing logged.');
@@ -912,7 +1050,7 @@
   $('shareBtn').onclick = async () => {
     const text = summaryText();
     if (navigator.share) { try { await navigator.share({ title: 'Migraine summary', text }); return; } catch (err) { if (err.name === 'AbortError') return; } }
-    try { await navigator.clipboard.writeText(text); showToast('Summary copied', false); } catch { alert(text); }
+    try { await navigator.clipboard.writeText(text); showToast('Summary copied'); } catch { alert(text); }
   };
 
   $('rangeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
@@ -991,15 +1129,15 @@
       const b = btn(x.dataset.restore); delete b.removed;
       // Put it back at the end of the active list.
       buttons = buttons.filter(y => y !== b); buttons.push(b);
-      saveButtons(); renderButtonsPage(); showToast(`${b.label} is back on your Log screen`, false);
+      saveButtons(); renderButtonsPage(); showToast(`${b.label} is back on your Log screen`);
     });
   }
 
   function addListTag() {
     const t = cleanTag($('newTag').value);
     if (!t) { $('newTag').focus(); return; }
-    if (tagList.some(x => sameTag(x, t))) { showToast(`"${t}" is already a tag`, false); }
-    else { tagList.push(t); saveTags(); showToast(`Added "${t}"`, false); }
+    if (tagList.some(x => sameTag(x, t))) { showToast(`"${t}" is already a tag`); }
+    else { tagList.push(t); saveTags(); showToast(`Added "${t}"`); }
     $('newTag').value = ''; renderButtonsPage();
   }
   $('newTagBtn').onclick = addListTag;
@@ -1055,7 +1193,7 @@
     saveButtons();
     $('btnSheet').classList.remove('show');
     renderButtonsPage();
-    showToast(editingBtn ? 'Button updated' : `${name} added to your Log screen`, false);
+    showToast(editingBtn ? 'Button updated' : `${name} added to your Log screen`);
   };
   $('btnRemove').onclick = () => {
     const b = btn(editingBtn);
@@ -1063,7 +1201,7 @@
     b.removed = true; saveButtons();
     $('btnSheet').classList.remove('show');
     renderButtonsPage();
-    showToast(`${b.label} removed`, false);
+    showToast(`${b.label} removed`);
   };
 
   // ---------- navigation ----------
@@ -1128,6 +1266,7 @@
       if (Array.isArray(data.tags)) for (const t of data.tags) if (typeof t === 'string') canonTag(t);
       const valid = incoming.filter(e => e && typeof e.type === 'string' && !isNaN(Date.parse(e.t)) && e.id
         && (e.note === undefined || typeof e.note === 'string')
+        && (e.end === undefined || !isNaN(Date.parse(e.end)))
         && (e.tags === undefined || (Array.isArray(e.tags) && e.tags.every(t => typeof t === 'string'))));
       for (const e of valid) if (e.tags) { e.tags = e.tags.map(canonTag).filter(Boolean); if (!e.tags.length) delete e.tags; }
       // Older backups only have entries: make sure every type has a button (kept as removed).
@@ -1138,7 +1277,7 @@
       const added = valid.filter(e => !ids.has(e.id));
       entries = entries.concat(added); save(); render();
       $('backupSheet').classList.remove('show');
-      showToast(`Restored ${added.length} entr${added.length === 1 ? 'y' : 'ies'}`, false);
+      showToast(`Restored ${added.length} entr${added.length === 1 ? 'y' : 'ies'}`);
     } catch { alert("That file doesn't look like a migraine backup."); }
   };
 
