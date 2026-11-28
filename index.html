@@ -233,6 +233,19 @@
   .sheet .endrow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 14px; color: var(--muted); }
   .sheet .linkbtn { color: var(--muted); text-decoration: underline; font-size: 14px; padding: 4px 0; }
 
+  /* Summary tag filter */
+  .tagfilter { background: var(--card); border-radius: 14px; padding: 12px 0 12px 14px; margin-bottom: 10px; }
+  .tf-head { display: flex; justify-content: space-between; align-items: center; padding-right: 14px; margin-bottom: 8px; }
+  .tf-head span { font-size: 15px; font-weight: 700; }
+  .tf-head button { font-size: 14px; color: var(--muted); text-decoration: underline; }
+  .tf-chips { display: flex; gap: 7px; overflow-x: auto; padding-right: 14px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .tf-chips::-webkit-scrollbar { display: none; }
+  .tf-chips .chip { flex: none; }
+  .tagfilter .seg { margin: 10px 14px 0 0; background: var(--bg); }
+  .tagfilter .seg button { font-size: 13px; padding: 7px 0; }
+  .tf-cap { font-size: 13px; color: var(--muted); margin: 8px 14px 0 0; }
+  .tf-cap:empty { display: none; }
+
   /* Buttons page */
   .intro { color: var(--muted); font-size: 15px; margin: 0 2px 12px; }
   .blist { background: var(--card); border-radius: 14px; overflow: hidden; }
@@ -297,6 +310,13 @@
     <button id="sNext" aria-label="Later">›</button>
   </div>
 
+  <div class="tagfilter" id="tagFilter">
+    <div class="tf-head"><span>Filter by tag</span><button id="tfClear">Clear</button></div>
+    <div class="tf-chips" id="tfChips"></div>
+    <div class="seg" id="tfMode"><button data-m="any">Any of these tags</button><button data-m="all">All of these tags</button></div>
+    <div class="tf-cap" id="tfCap"></div>
+  </div>
+
   <div class="tiles" id="tiles"></div>
   <div id="warnBox"></div>
 
@@ -306,7 +326,7 @@
   </div>
 
   <div class="card">
-    <h3>Migraine days per month</h3>
+    <h3 id="barTitle">Migraine days per month</h3>
     <div class="chart-cap" id="barCap">Tap a bar for details</div>
     <div class="bars" id="bars"></div>
     <div class="xlabels" id="xlabels"></div>
@@ -882,13 +902,64 @@
     return { start, end, endMonth };
   }
   function inRange(e, start, end) { const d = new Date(e.t); return d >= start && d < end; }
+  // ---------- tag filter (Summary) ----------
+  let tagFilter = [];       // selected tags (display spelling)
+  let tagMode = 'any';      // 'any' | 'all'
+  const filtering = () => tagFilter.length > 0;
+  function migMatches(e) {
+    if (!filtering()) return true;
+    const has = (e.tags || []).map(t => t.toLowerCase());
+    const want = tagFilter.map(t => t.toLowerCase());
+    return tagMode === 'all' ? want.every(t => has.includes(t)) : want.some(t => has.includes(t));
+  }
+  // Entries the Summary looks at: matching migraines, and medicine taken on those migraine days.
+  function pool() {
+    if (!filtering()) return entries;
+    const migs = entries.filter(e => e.type === 'migraine' && migMatches(e));
+    const migDays = new Set(migs.flatMap(daysOf));
+    return entries.filter(e => e.type === 'migraine' ? migMatches(e) : migDays.has(dayKey(new Date(e.t))));
+  }
+  function usedTags() {
+    const c = {}, spell = {};
+    for (const e of entries) if (e.type === 'migraine') for (const t of (e.tags || [])) {
+      const k = t.toLowerCase(); c[k] = (c[k] || 0) + 1; spell[k] ||= t;
+    }
+    return Object.keys(c).sort((a, b) => c[b] - c[a]).map(k => [spell[k], c[k]]);
+  }
+  function renderTagFilter() {
+    const used = usedTags();
+    // Drop selections that no longer exist.
+    tagFilter = tagFilter.filter(t => used.some(([u]) => sameTag(u, t)));
+    $('tagFilter').hidden = !used.length;
+    if (!used.length) return;
+    $('tfChips').innerHTML = `<button class="chip${filtering() ? '' : ' on'}" data-all="1">All migraines</button>` +
+      used.map(([t, n]) => `<button class="chip${tagFilter.some(x => sameTag(x, t)) ? ' on' : ''}" data-t="${escapeHtml(t)}">${escapeHtml(t)}<small>${n}</small></button>`).join('');
+    $('tfChips').querySelectorAll('.chip').forEach(c => c.onclick = () => {
+      if (c.dataset.all) tagFilter = [];
+      else {
+        const t = c.dataset.t;
+        tagFilter = tagFilter.some(x => sameTag(x, t)) ? tagFilter.filter(x => !sameTag(x, t)) : [...tagFilter, t];
+      }
+      pickedBar = null; renderSummary();
+    });
+    $('tfClear').hidden = !filtering();
+    $('tfMode').hidden = tagFilter.length < 2;
+    $('tfMode').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === tagMode));
+    $('tfCap').textContent = filtering()
+      ? `Showing migraines tagged ${tagFilter.join(tagMode === 'all' ? ' and ' : ' or ')}. Medicine counts only include doses taken on those migraine days.`
+      : '';
+  }
+  $('tfClear').onclick = () => { tagFilter = []; pickedBar = null; renderSummary(); };
+  $('tfMode').querySelectorAll('button').forEach(b => b.onclick = () => { tagMode = b.dataset.m; pickedBar = null; renderSummary(); });
+
   function stats(start, end) {
-    const list = entries.filter(e => inRange(e, start, end));
+    const all = pool();
+    const list = all.filter(e => inRange(e, start, end));
     const days = { migraine: new Set() }, doses = {};
     for (const e of list) { (days[e.type] ||= new Set()).add(dayKey(new Date(e.t))); doses[e.type] = (doses[e.type] || 0) + 1; }
     // Migraines that run past midnight count every day they cover (including ones that started before this period).
     const k0 = dayKey(start), k1 = dayKey(new Date(end - 1));
-    for (const e of entries) if (e.type === 'migraine' && e.end)
+    for (const e of all) if (e.type === 'migraine' && e.end)
       for (const k of daysOf(e)) if (k >= k0 && k <= k1) days.migraine.add(k);
     const lens = list.filter(e => e.type === 'migraine' && e.end).map(e => new Date(e.end) - new Date(e.t)).filter(ms => ms > 0);
     const nDays = id => (days[id] ? days[id].size : 0);
@@ -912,8 +983,10 @@
   function renderSummary() {
     const { start, end, endMonth } = windowBounds();
     const today = new Date();
+    renderTagFilter();
     const st = stats(start, end);
     $('sLabel').textContent = periodLabel(start, endMonth);
+    $('barTitle').textContent = filtering() ? 'Tagged migraine days per month' : 'Migraine days per month';
     $('sNext').disabled = endOffset >= 0;
 
     const migDays = st.days.migraine.size;
@@ -932,7 +1005,7 @@
       if (st.days.migraine.has(dayKey(d))) run = 0; else best = Math.max(best, ++run);
     }
     // Current streak since last migraine (any time)
-    const migs = entries.filter(e => e.type === 'migraine').map(e => new Date(e.end || e.t)).sort((a, b) => b - a);
+    const migs = pool().filter(e => e.type === 'migraine').map(e => new Date(e.end || e.t)).sort((a, b) => b - a);
     let since = '—';
     if (migs.length) {
       const a = new Date(migs[0].getFullYear(), migs[0].getMonth(), migs[0].getDate());
@@ -944,11 +1017,11 @@
     const treated = [...st.days.migraine].filter(k => Object.keys(st.days).some(id => id !== 'migraine' && st.days[id].has(k))).length;
 
     const migEntriesCount = st.list.filter(e => e.type === 'migraine').length;
-    if (entries.some(isOngoing)) since = 'Ongoing now';
+    if (pool().some(isOngoing)) since = 'Ongoing now';
     const facts = [
-      ['Last migraine', since],
-      ['Migraine-free days', elapsed ? `${elapsed - migDays} of ${elapsed}` : '—'],
-      ['Longest migraine-free stretch', elapsed ? `${best} day${best === 1 ? '' : 's'}` : '—'],
+      [filtering() ? 'Last tagged migraine' : 'Last migraine', since],
+      [filtering() ? 'Days without a tagged migraine' : 'Migraine-free days', elapsed ? `${elapsed - migDays} of ${elapsed}` : '—'],
+      [filtering() ? 'Longest stretch without one' : 'Longest migraine-free stretch', elapsed ? `${best} day${best === 1 ? '' : 's'}` : '—'],
       ['Migraine days with medicine', migDays ? `${treated} of ${migDays}` : '—'],
       ['Average migraine length', st.lens.length ? fmtDur(st.lens.reduce((a, b) => a + b, 0) / st.lens.length) : '—'],
       ['Longest migraine', st.lens.length ? fmtDur(Math.max(...st.lens)) : '—'],
@@ -959,7 +1032,7 @@
 
     // Medication-overuse reminder (monthly view only)
     const warns = [];
-    if (range === 1) {
+    if (range === 1 && !filtering()) {   // overuse is about total use, so skip when filtered
       for (const b of st.meds) {
         const k = KINDS[b.kind], n = st.nDays(b.id);
         if (k && n >= k.days) warns.push(`${escapeHtml(b.label)} was taken on ${n} days this month. Using ${k.word} on ${k.days} or more days a month can lead to medication-overuse headaches — worth mentioning to your doctor.`);
@@ -1025,7 +1098,8 @@
   function summaryText() {
     const { start, end, endMonth } = windowBounds();
     const st = stats(start, end);
-    const lines = [`Migraine summary: ${periodLabel(start, endMonth)}`, '',
+    const lines = [`Migraine summary: ${periodLabel(start, endMonth)}`,
+      ...(filtering() ? [`Filtered to migraines tagged ${tagFilter.join(tagMode === 'all' ? ' and ' : ' or ')} (medicine counts are for those days only)`] : []), '',
       `Migraine days: ${st.days.migraine.size}${range > 1 ? ` (avg ${(st.days.migraine.size / range).toFixed(1)}/month)` : ''}`,
       ...st.meds.map(b => `${b.label}: ${st.nDoses(b.id)} doses on ${st.nDays(b.id)} days`)];
     const tagDays = {};
